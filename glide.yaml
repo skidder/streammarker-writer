@@ -1,0 +1,28 @@
+package: github.com/urlgrey/streammarker-writer
+import:
+- package: github.com/aws/aws-sdk-go
+  version: 4f9a300f2af32035b3ae8bd0ce9b0fe8412df743
+  subpackages:
+  - aws
+  - internal/endpoints
+  - internal/protocol/json/jsonutil
+  - internal/protocol/jsonrpc
+  - internal/protocol/query
+  - internal/protocol/rest
+  - internal/protocol/xml/xmlutil
+  - internal/signer/v4
+  - service/dynamodb
+  - service/sqs
+  - aws/awserr
+- package: github.com/codegangsta/negroni
+  version: c7477ad8e330bef55bf1ebe300cf8aa67c492d1b
+- package: github.com/gorilla/context
+  version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
+- package: github.com/gorilla/mux
+  version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
+- package: github.com/stretchr/testify
+  version: e22aedd37671fb115be6c0c25129c405cb575cfd
+  subpackages:
+  - assert
+- package: github.com/vaughan0/go-ini
+  version: a98ad7ee00ec53921f08832bc06ecf7fd600e6a1

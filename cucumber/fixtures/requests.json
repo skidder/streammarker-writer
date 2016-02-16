@@ -1,0 +1,100 @@
+{
+  "valid_single_sensor_reading": {
+     "reading_timestamp":1433031540,
+     "reporting_timestamp":1433031541,
+     "relay_id":"53644F1C-2480-4F9B-9CBA-26D66139D221",
+     "sensor_id": "556AC569-6E7D-44A9-A64C-D900927010FE",
+     "measurements": [
+       {
+         "name": "temperature",
+         "value": 28.3,
+         "unit": "Celsius"
+       }
+     ]
+   },
+  "sample_frequency_msg1": {
+     "reading_timestamp":1433031541,
+     "reporting_timestamp":1433031542,
+     "relay_id":"53644F1C-2480-4F9B-9CBA-26D66139D221",
+     "sensor_id": "ACA4C42F-18FD-4038-AACD-DE575E261E7A",
+     "measurements": [
+       {
+         "name": "temperature",
+         "value": 28.3,
+         "unit": "Celsius"
+       }
+     ]
+   },
+  "sample_frequency_msg2": {
+     "reading_timestamp":1433031542,
+     "reporting_timestamp":1433031543,
+     "relay_id":"53644F1C-2480-4F9B-9CBA-26D66139D221",
+     "sensor_id": "ACA4C42F-18FD-4038-AACD-DE575E261E7A",
+     "measurements": [
+       {
+         "name": "temperature",
+         "value": 28.3,
+         "unit": "Celsius"
+       }
+     ]
+   },
+  "valid_single_sensor_reading_for_account1": {
+     "reading_timestamp":1433031540,
+     "reporting_timestamp":1433031541,
+     "relay_id":"53644F1C-2480-4F9B-9CBA-26D66139D221",
+     "sensor_id": "ACA4C42F-18FD-4038-AACD-DE575E261E7A",
+     "measurements": [
+       {
+         "name": "temperature",
+         "value": 28.3,
+         "unit": "Celsius"
+       }
+     ]
+   },
+  "valid_max_single_sensor_reading": {
+     "reading_timestamp":1433031640,
+     "reporting_timestamp":1433031542,
+     "relay_id":"53644F1C-2480-4F9B-9CBA-26D66139D221",
+     "sensor_id": "556AC569-6E7D-44A9-A64C-D900927010FE",
+     "measurements": [
+       {
+         "name": "temperature",
+         "value": 31.2,
+         "unit": "Celsius"
+       }
+     ]
+   },
+  "valid_middle_single_sensor_reading": {
+     "reading_timestamp":1433031740,
+     "reporting_timestamp":1433031542,
+     "relay_id":"53644F1C-2480-4F9B-9CBA-26D66139D221",
+     "sensor_id": "556AC569-6E7D-44A9-A64C-D900927010FE",
+     "measurements": [
+       {
+         "name": "temperature",
+         "value": 31.1,
+         "unit": "Celsius"
+       }
+     ]
+   },
+  "empty_single_sensor_reading": {
+     "reading_timestamp":1433031540,
+     "reporting_timestamp":1433031541,
+     "relay_id":"53644F1C-2480-4F9B-9CBA-26D66139D222",
+     "sensor_id": "556AC569-6E7D-44A9-A64C-D900927010FF",
+     "measurements": []
+   },
+  "bad_reporting_device_single_sensor_reading": {
+     "reading_timestamp":1433031540,
+     "reporting_timestamp":1433031541,
+     "relay_id":"bad-reporting-device-id",
+     "sensor_id": "556AC569-6E7D-44A9-A64C-D900927010FE",
+     "measurements": [
+       {
+         "name": "temperature",
+         "value": 28.3,
+         "unit": "Celsius"
+       }
+     ]
+   }
+}
