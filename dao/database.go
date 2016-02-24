@@ -228,19 +228,19 @@ func (d *Database) recordHourlyMeasurement(r *SensorReadingQueueMessage, sensor 
 		log.Println("Measurements JSON", string(hourlyMeasurementsJSON))
 		input := &dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
-				"id": &dynamodb.AttributeValue{
+				"id": {
 					S: aws.String(fmt.Sprintf("%s:%s", sensor.AccountID, sensor.ID)),
 				},
-				"timestamp": &dynamodb.AttributeValue{
+				"timestamp": {
 					N: aws.String(fmt.Sprintf("%d", hourlyRoundedTimestamp.Unix())),
 				},
-				"account_id": &dynamodb.AttributeValue{
+				"account_id": {
 					S: aws.String(sensor.AccountID),
 				},
-				"sensor_id": &dynamodb.AttributeValue{
+				"sensor_id": {
 					S: aws.String(sensor.ID),
 				},
-				"measurements": &dynamodb.AttributeValue{
+				"measurements": {
 					S: aws.String(string(hourlyMeasurementsJSON)),
 				},
 			},
@@ -262,22 +262,22 @@ func (d *Database) recordMeasurement(r *SensorReadingQueueMessage, sensor *Senso
 	}
 	sensorReadingsTableName := fmt.Sprintf("sensor_readings_%s", readingTimestamp.Format(tableTimestampFormat))
 	item := map[string]*dynamodb.AttributeValue{
-		"id": &dynamodb.AttributeValue{
+		"id": {
 			S: aws.String(fmt.Sprintf("%s:%s", sensor.AccountID, sensor.ID)),
 		},
-		"timestamp": &dynamodb.AttributeValue{
+		"timestamp": {
 			N: aws.String(fmt.Sprintf("%d", r.ReadingTimestamp)),
 		},
-		"account_id": &dynamodb.AttributeValue{
+		"account_id": {
 			S: aws.String(sensor.AccountID),
 		},
-		"relay_id": &dynamodb.AttributeValue{
+		"relay_id": {
 			S: aws.String(r.RelayID),
 		},
-		"sensor_id": &dynamodb.AttributeValue{
+		"sensor_id": {
 			S: aws.String(sensor.ID),
 		},
-		"measurements": &dynamodb.AttributeValue{
+		"measurements": {
 			S: aws.String(string(measurementsJSON)),
 		},
 	}
@@ -339,21 +339,21 @@ func (d *Database) getTableWaitTime() (t time.Duration) {
 func (d *Database) createSensorReadingsTable(tableName string) (err error) {
 	createTableInput := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{ // Required
-			&dynamodb.AttributeDefinition{
+			{
 				AttributeName: aws.String("id"),
 				AttributeType: aws.String("S"),
 			},
-			&dynamodb.AttributeDefinition{
+			{
 				AttributeName: aws.String("timestamp"),
 				AttributeType: aws.String("N"),
 			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
-			&dynamodb.KeySchemaElement{
+			{
 				AttributeName: aws.String("id"),
 				KeyType:       aws.String("HASH"),
 			},
-			&dynamodb.KeySchemaElement{
+			{
 				AttributeName: aws.String("timestamp"),
 				KeyType:       aws.String("RANGE"),
 			},
@@ -375,7 +375,7 @@ func (d *Database) createSensorReadingsTable(tableName string) (err error) {
 func (d *Database) getRelay(relayID string) (relay *Relay, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{
+			"id": {
 				S: aws.String(relayID),
 			},
 		},
@@ -407,7 +407,7 @@ func (d *Database) getRelay(relayID string) (relay *Relay, err error) {
 func (d *Database) getSensor(sensorID string, accountID string) (*Sensor, error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{
+			"id": {
 				S: aws.String(sensorID),
 			},
 		},
@@ -510,22 +510,22 @@ func (d *Database) createSensor(sensorID string, accountID string) (*Sensor, err
 	var err error
 	input := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{
+			"id": {
 				S: aws.String(fmt.Sprintf("%s", sensorID)),
 			},
-			"account_id": &dynamodb.AttributeValue{
+			"account_id": {
 				S: aws.String(accountID),
 			},
-			"name": &dynamodb.AttributeValue{
+			"name": {
 				S: aws.String(" "),
 			},
-			"state": &dynamodb.AttributeValue{
+			"state": {
 				S: aws.String("active"),
 			},
-			"sample_frequency": &dynamodb.AttributeValue{
+			"sample_frequency": {
 				N: aws.String("1"),
 			},
-			"location_enabled": &dynamodb.AttributeValue{
+			"location_enabled": {
 				BOOL: aws.Bool(false),
 			},
 		},
@@ -586,4 +586,16 @@ type SensorReadingQueueMessage struct {
 	ReadingTimestamp   int32         `json:"reading_timestamp"`
 	ReportingTimestamp int32         `json:"reporting_timestamp"`
 	Measurements       []Measurement `json:"measurements"`
+}
+
+// Relay represents a StreamMarker relay
+type Relay struct {
+	ID        string `json:"id"`
+	AccountID string `json:"account_id"`
+	Name      string `json:"name"`
+	State     string `json:"state"`
+}
+
+func (r *Relay) isActive() bool {
+	return (r.State == "active")
 }
