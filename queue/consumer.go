@@ -11,7 +11,8 @@ import (
 	"github.com/urlgrey/streammarker-writer/dao"
 )
 
-type QueueConsumer struct {
+// Consumer represents a StreamMarker queue consumer
+type Consumer struct {
 	db         *dao.Database
 	sqsService *sqs.SQS
 	queueURL   string
@@ -20,8 +21,9 @@ type QueueConsumer struct {
 	waitGroup   *sync.WaitGroup
 }
 
-func NewQueueConsumer(db *dao.Database, sqsService *sqs.SQS, queueURL string) *QueueConsumer {
-	return &QueueConsumer{
+// NewConsumer constructs a new queue consumer
+func NewConsumer(db *dao.Database, sqsService *sqs.SQS, queueURL string) *Consumer {
+	return &Consumer{
 		db:          db,
 		sqsService:  sqsService,
 		queueURL:    queueURL,
@@ -31,7 +33,7 @@ func NewQueueConsumer(db *dao.Database, sqsService *sqs.SQS, queueURL string) *Q
 }
 
 // Run the queue consumer, will block until the Stop function is called
-func (q *QueueConsumer) Run() {
+func (q *Consumer) Run() {
 	q.waitGroup.Add(1)
 	defer q.waitGroup.Done()
 
@@ -86,8 +88,8 @@ func (q *QueueConsumer) Run() {
 	}
 }
 
-// Signal to the QueueConsumer Run function that it should return
-func (q *QueueConsumer) Stop() {
+// Stop the queue consumer
+func (q *Consumer) Stop() {
 	close(q.stopChannel) // signal to the Run goroutine to stop
 	q.waitGroup.Wait()   // wait for the Run routine and its children to finish
 }

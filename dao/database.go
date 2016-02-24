@@ -14,20 +14,22 @@ import (
 )
 
 const (
-	TABLE_TIMESTAMP_FORMAT        = "2006-01"
-	HOURLY_TABLE_TIMESTAMP_FORMAT = "2006-01"
-	SAMPLE_FREQUENCY_TOLERANCE    = 3
+	tableTimestampFormat       = "2006-01"
+	hourlyTableTimestampFormat = "2006-01"
+	sampleFrequencyTolerance   = 3
 )
 
+// Database represents a database to be used for reading & writing measurements
 type Database struct {
 	dynamoDBService *dynamodb.DynamoDB
 }
 
+// NewDatabase builds a new Database instance
 func NewDatabase(dynamoDBService *dynamodb.DynamoDB) *Database {
 	return &Database{dynamoDBService: dynamoDBService}
 }
 
-// Record the Sensor Reading data, first verifying that a corresponding reporting
+// WriteSensorReading will record the Sensor Reading data, first verifying that a corresponding reporting
 // device and account exist and are active
 func (d *Database) WriteSensorReading(r *SensorReadingQueueMessage) error {
 	var err error
@@ -37,7 +39,7 @@ func (d *Database) WriteSensorReading(r *SensorReadingQueueMessage) error {
 	}
 
 	var relay *Relay
-	if relay, err = d.GetRelay(r.RelayID); err != nil {
+	if relay, err = d.getRelay(r.RelayID); err != nil {
 		return err
 	}
 
@@ -81,7 +83,7 @@ func (d *Database) WriteSensorReading(r *SensorReadingQueueMessage) error {
 
 func (d *Database) recordHourlyMeasurement(r *SensorReadingQueueMessage, sensor *Sensor, readingTimestamp *time.Time) error {
 	var err error
-	hourlySensorReadingsTableName := fmt.Sprintf("hourly_sensor_readings_%s", readingTimestamp.Format(HOURLY_TABLE_TIMESTAMP_FORMAT))
+	hourlySensorReadingsTableName := fmt.Sprintf("hourly_sensor_readings_%s", readingTimestamp.Format(hourlyTableTimestampFormat))
 	hourlyRoundedTimestamp := time.Date(readingTimestamp.Year(), readingTimestamp.Month(), readingTimestamp.Day(), readingTimestamp.Hour(), 0, 0, 0, readingTimestamp.Location())
 
 	// query the table for an existing hourly record
@@ -219,11 +221,11 @@ func (d *Database) recordHourlyMeasurement(r *SensorReadingQueueMessage, sensor 
 
 	// store record
 	if minMaxRequiresSave {
-		var hourlyMeasurementsJson []byte
-		if hourlyMeasurementsJson, err = json.Marshal(mergedMinMax); err != nil {
+		var hourlyMeasurementsJSON []byte
+		if hourlyMeasurementsJSON, err = json.Marshal(mergedMinMax); err != nil {
 			return err
 		}
-		log.Println("Measurements JSON", string(hourlyMeasurementsJson))
+		log.Println("Measurements JSON", string(hourlyMeasurementsJSON))
 		input := &dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
 				"id": &dynamodb.AttributeValue{
@@ -239,7 +241,7 @@ func (d *Database) recordHourlyMeasurement(r *SensorReadingQueueMessage, sensor 
 					S: aws.String(sensor.ID),
 				},
 				"measurements": &dynamodb.AttributeValue{
-					S: aws.String(string(hourlyMeasurementsJson)),
+					S: aws.String(string(hourlyMeasurementsJSON)),
 				},
 			},
 			TableName: aws.String(hourlySensorReadingsTableName),
@@ -254,11 +256,11 @@ func (d *Database) recordHourlyMeasurement(r *SensorReadingQueueMessage, sensor 
 
 func (d *Database) recordMeasurement(r *SensorReadingQueueMessage, sensor *Sensor, readingTimestamp *time.Time) error {
 	var err error
-	var measurementsJson []byte
-	if measurementsJson, err = json.Marshal(r.Measurements); err != nil {
+	var measurementsJSON []byte
+	if measurementsJSON, err = json.Marshal(r.Measurements); err != nil {
 		return err
 	}
-	sensorReadingsTableName := fmt.Sprintf("sensor_readings_%s", readingTimestamp.Format(TABLE_TIMESTAMP_FORMAT))
+	sensorReadingsTableName := fmt.Sprintf("sensor_readings_%s", readingTimestamp.Format(tableTimestampFormat))
 	item := map[string]*dynamodb.AttributeValue{
 		"id": &dynamodb.AttributeValue{
 			S: aws.String(fmt.Sprintf("%s:%s", sensor.AccountID, sensor.ID)),
@@ -276,7 +278,7 @@ func (d *Database) recordMeasurement(r *SensorReadingQueueMessage, sensor *Senso
 			S: aws.String(sensor.ID),
 		},
 		"measurements": &dynamodb.AttributeValue{
-			S: aws.String(string(measurementsJson)),
+			S: aws.String(string(measurementsJSON)),
 		},
 	}
 	if sensor.LocationEnabled && sensor.Latitude != 0 && sensor.Longitude != 0 {
@@ -370,8 +372,7 @@ func (d *Database) createSensorReadingsTable(tableName string) (err error) {
 	return
 }
 
-// Get the Relay record for the given relay ID
-func (d *Database) GetRelay(relayID string) (relay *Relay, err error) {
+func (d *Database) getRelay(relayID string) (relay *Relay, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{
@@ -397,18 +398,17 @@ func (d *Database) GetRelay(relayID string) (relay *Relay, err error) {
 				State:     *resp.Item["state"].S,
 			}
 		} else {
-			err = errors.New(fmt.Sprintf("Relay not found: %s", relayID))
+			err = fmt.Errorf("Relay not found: %s", relayID)
 		}
 	}
 	return
 }
 
-// Get the Sensor record for the given reporting device ID
-func (d *Database) getSensor(sensorId string, accountId string) (*Sensor, error) {
+func (d *Database) getSensor(sensorID string, accountID string) (*Sensor, error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{
-				S: aws.String(sensorId),
+				S: aws.String(sensorID),
 			},
 		},
 		TableName: aws.String("sensors"),
@@ -429,7 +429,7 @@ func (d *Database) getSensor(sensorId string, accountId string) (*Sensor, error)
 	if resp, err = d.dynamoDBService.GetItem(params); err == nil {
 		if resp.Item != nil {
 			sensor = &Sensor{
-				ID:              sensorId,
+				ID:              sensorID,
 				AccountID:       *resp.Item["account_id"].S,
 				Name:            *resp.Item["name"].S,
 				State:           *resp.Item["state"].S,
@@ -450,8 +450,8 @@ func (d *Database) getSensor(sensorId string, accountId string) (*Sensor, error)
 	return sensor, err
 }
 
-func (d *Database) getTimeOfLastReadingForSensor(sensorId string, accountId string, timestamp *time.Time) (*time.Time, error) {
-	sensorReadingsTableName := fmt.Sprintf("sensor_readings_%s", timestamp.Format(TABLE_TIMESTAMP_FORMAT))
+func (d *Database) getTimeOfLastReadingForSensor(sensorID string, accountID string, timestamp *time.Time) (*time.Time, error) {
+	sensorReadingsTableName := fmt.Sprintf("sensor_readings_%s", timestamp.Format(tableTimestampFormat))
 	params := &dynamodb.QueryInput{
 		TableName: aws.String(sensorReadingsTableName),
 		AttributesToGet: []*string{
@@ -463,7 +463,7 @@ func (d *Database) getTimeOfLastReadingForSensor(sensorId string, accountId stri
 				ComparisonOperator: aws.String("EQ"),
 				AttributeValueList: []*dynamodb.AttributeValue{
 					{
-						S: aws.String(fmt.Sprintf("%s:%s", accountId, sensorId)),
+						S: aws.String(fmt.Sprintf("%s:%s", accountID, sensorID)),
 					},
 				},
 			},
@@ -498,7 +498,7 @@ func (d *Database) shouldEvaluateSensorReading(readingTimestamp *time.Time, sens
 		secondsElapsed := readingTimestamp.Sub(*lastReadingTimestamp).Seconds()
 		sampleFrequency := sensor.SampleFrequency
 		log.Printf("Seconds since last reading was written: %d", int32(secondsElapsed))
-		if secondsElapsed < float64(sampleFrequency-SAMPLE_FREQUENCY_TOLERANCE) {
+		if secondsElapsed < float64(sampleFrequency-sampleFrequencyTolerance) {
 			log.Printf("Ignoring reading for sensor %s due to sample frequency limit (%d seconds)", sensor.ID, sampleFrequency)
 			return false
 		}
@@ -506,15 +506,15 @@ func (d *Database) shouldEvaluateSensorReading(readingTimestamp *time.Time, sens
 	return true
 }
 
-func (d *Database) createSensor(sensorId string, accountId string) (*Sensor, error) {
+func (d *Database) createSensor(sensorID string, accountID string) (*Sensor, error) {
 	var err error
 	input := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{
-				S: aws.String(fmt.Sprintf("%s", sensorId)),
+				S: aws.String(fmt.Sprintf("%s", sensorID)),
 			},
 			"account_id": &dynamodb.AttributeValue{
-				S: aws.String(accountId),
+				S: aws.String(accountID),
 			},
 			"name": &dynamodb.AttributeValue{
 				S: aws.String(" "),
@@ -537,8 +537,8 @@ func (d *Database) createSensor(sensorId string, accountId string) (*Sensor, err
 	}
 
 	sensor := &Sensor{
-		ID:              sensorId,
-		AccountID:       accountId,
+		ID:              sensorID,
+		AccountID:       accountID,
 		Name:            " ",
 		State:           "active",
 		SampleFrequency: 60,
@@ -546,6 +546,7 @@ func (d *Database) createSensor(sensorId string, accountId string) (*Sensor, err
 	return sensor, err
 }
 
+// Sensor represents a Sensor capable of taking measurements
 type Sensor struct {
 	ID              string  `json:"id"`
 	AccountID       string  `json:"account_id"`
@@ -557,24 +558,28 @@ type Sensor struct {
 	Longitude       float64 `json:"longitude,omitempty"`
 }
 
+// Account reprensets a user account
 type Account struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	State string `json:"state"`
 }
 
+// Measurement contains measurement details
 type Measurement struct {
 	Name  string  `json:"name"`
 	Value float64 `json:"value"`
 	Unit  string  `json:"unit"`
 }
 
+// MinMaxMeasurement has minimum & maximum measurements readings
 type MinMaxMeasurement struct {
 	Name string      `json:"name"`
 	Min  Measurement `json:"min"`
 	Max  Measurement `json:"max"`
 }
 
+// SensorReadingQueueMessage represnets a sensor reading message sitting on the queue
 type SensorReadingQueueMessage struct {
 	RelayID            string        `json:"relay_id"`
 	SensorID           string        `json:"sensor_id"`

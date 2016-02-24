@@ -15,7 +15,7 @@ func TestQueueConsumerRunStop(t *testing.T) {
 	s := session.New()
 	config := &aws.Config{}
 	db := dao.NewDatabase(dynamodb.New(s))
-	qc := NewQueueConsumer(db, sqs.New(s, config), "asdf")
+	qc := NewConsumer(db, sqs.New(s, config), "asdf")
 	go qc.Run()
 	time.Sleep(time.Second)
 	qc.Stop()
