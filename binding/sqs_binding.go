@@ -74,5 +74,4 @@ func consumeMessagesFromQueue(logger levlog.Levels, ctx context.Context, c *conf
 			}
 		}
 	}
-	return nil
 }
