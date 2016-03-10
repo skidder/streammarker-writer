@@ -24,11 +24,9 @@ fmt:
 
 test:
 	if [ ! -d $(COVERAGEDIR) ]; then mkdir $(COVERAGEDIR); fi
-	go test -v ./queue -cover -coverprofile=$(COVERAGEDIR)/queue.coverprofile
 	go test -v ./handlers -cover -coverprofile=$(COVERAGEDIR)/handlers.coverprofile
 
 cover:
-	go tool cover -html=$(COVERAGEDIR)/queue.coverprofile -o $(COVERAGEDIR)/queue.html
 	go tool cover -html=$(COVERAGEDIR)/handlers.coverprofile -o $(COVERAGEDIR)/handlers.html
 
 bench:
