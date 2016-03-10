@@ -1,80 +1,49 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	stdlog "log"
+	"math/rand"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/codegangsta/negroni"
-	"github.com/gorilla/mux"
-	"github.com/urlgrey/streammarker-writer/dao"
-	"github.com/urlgrey/streammarker-writer/handlers"
-	"github.com/urlgrey/streammarker-writer/queue"
-)
-
-const (
-	defaultQueueName = "streammarker-collector-messages"
+	kitlog "github.com/go-kit/kit/log"
+	"github.com/urlgrey/streammarker-writer/binding"
+	"github.com/urlgrey/streammarker-writer/config"
+	"golang.org/x/net/context"
 )
 
 func main() {
-	// Create external service connections
-	s := session.New()
-	sqsService := createSQSConnection(s)
-	dynamoDBService := createDynamoDBConnection(s)
+	// `package log` domain
+	var logger kitlog.Logger
+	logger = kitlog.NewLogfmtLogger(os.Stderr)
+	logger = kitlog.NewContext(logger).With("ts", kitlog.DefaultTimestampUTC)
+	stdlog.SetOutput(kitlog.NewStdlibAdapter(logger)) // redirect stdlib logging to us
+	stdlog.SetFlags(0)                                // flags are handled in our logger
 
-	// get queue name
-	queueName := os.Getenv("STREAMMARKER_QUEUE_NAME")
-	if queueName == "" {
-		queueName = defaultQueueName
-	}
+	// read configuration from environment
+	c := config.LoadConfiguration()
 
-	db := dao.NewDatabase(dynamoDBService)
-	queueConsumer := queue.NewConsumer(db, sqsService, findQueueURL(sqsService, queueName))
-	go queueConsumer.Run()
+	// Mechanical stuff
+	rand.Seed(time.Now().UnixNano())
+	root := context.Background()
+	errc := make(chan error)
 
-	// Run healthcheck service
-	healthCheckServer := negroni.New()
-	healthCheckRouter := mux.NewRouter()
-	handlers.InitializeRouterForHealthCheckHandler(healthCheckRouter, dynamoDBService, sqsService, queueName)
-	healthCheckServer.UseHandler(healthCheckRouter)
-	healthCheckServer.Run(":3100")
+	go func() {
+		errc <- interrupt()
+	}()
+
+	// Start bindings
+	binding.StartApplicationSQSConsumer(logger, root, errc, c)
+	binding.StartHealthCheckHTTPListener(logger, root, errc, c)
+
+	logger.Log("fatal", <-errc)
 }
 
-func createSQSConnection(s *session.Session) *sqs.SQS {
-	config := &aws.Config{}
-	if endpoint := os.Getenv("STREAMMARKER_SQS_ENDPOINT"); endpoint != "" {
-		config.Endpoint = &endpoint
-	}
-
-	return sqs.New(s, config)
-}
-
-func createDynamoDBConnection(s *session.Session) *dynamodb.DynamoDB {
-	config := &aws.Config{}
-	if endpoint := os.Getenv("STREAMMARKER_DYNAMO_ENDPOINT"); endpoint != "" {
-		config.Endpoint = &endpoint
-	}
-
-	return dynamodb.New(s, config)
-}
-
-func findQueueURL(sqsService *sqs.SQS, queueName string) (queueURL string) {
-	// check the environment variable first
-	if queueURL = os.Getenv("STREAMMARKER_SQS_QUEUE_URL"); queueURL != "" {
-		return
-	}
-
-	// otherwise, query SQS for the queue URL
-	params := &sqs.GetQueueUrlInput{
-		QueueName: aws.String(queueName),
-	}
-	if resp, err := sqsService.GetQueueUrl(params); err == nil {
-		queueURL = *resp.QueueUrl
-	} else {
-		log.Panicf("Unable to retrieve queue URL: %s", err.Error())
-	}
-	return
+func interrupt() error {
+	c := make(chan os.Signal)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	return fmt.Errorf("%s", <-c)
 }

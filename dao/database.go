@@ -11,6 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
 const (
@@ -21,11 +22,11 @@ const (
 
 // Database represents a database to be used for reading & writing measurements
 type Database struct {
-	dynamoDBService *dynamodb.DynamoDB
+	dynamoDBService dynamodbiface.DynamoDBAPI
 }
 
 // NewDatabase builds a new Database instance
-func NewDatabase(dynamoDBService *dynamodb.DynamoDB) *Database {
+func NewDatabase(dynamoDBService dynamodbiface.DynamoDBAPI) *Database {
 	return &Database{dynamoDBService: dynamoDBService}
 }
 
