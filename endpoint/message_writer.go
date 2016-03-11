@@ -3,7 +3,7 @@ package endpoint
 import (
 	"errors"
 	"github.com/urlgrey/streammarker-writer/config"
-	"github.com/urlgrey/streammarker-writer/dao"
+	"github.com/urlgrey/streammarker-writer/db"
 
 	"golang.org/x/net/context"
 )
@@ -14,7 +14,7 @@ type MessageWriter interface {
 }
 
 type messageWriter struct {
-	db *dao.Database
+	db *db.Database
 }
 
 // NewMessageWriter creates a new healthcheck
@@ -23,7 +23,7 @@ func NewMessageWriter(c *config.Configuration) MessageWriter {
 }
 
 func (h *messageWriter) Run(ctx context.Context, i interface{}) (interface{}, error) {
-	request, ok := i.(*dao.SensorReadingQueueMessage)
+	request, ok := i.(*db.SensorReadingQueueMessage)
 	if !ok {
 		return nil, errors.New("Bad cast of request value")
 	}

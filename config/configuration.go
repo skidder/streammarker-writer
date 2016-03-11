@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	"github.com/urlgrey/streammarker-writer/dao"
+	"github.com/urlgrey/streammarker-writer/db"
 )
 
 const (
@@ -24,7 +24,7 @@ type Configuration struct {
 	DynamoDBService    dynamodbiface.DynamoDBAPI
 	QueueName          string
 	QueueURL           string
-	Database           *dao.Database
+	Database           *db.Database
 }
 
 // LoadConfiguration loads the app config
@@ -39,7 +39,7 @@ func LoadConfiguration() *Configuration {
 	sqsService := createSQSConnection(s)
 	dynamoDBService := createDynamoDBConnection(s)
 	queueURL := findQueueURL(sqsService, queueName)
-	db := dao.NewDatabase(dynamoDBService)
+	db := db.NewDatabase(dynamoDBService)
 
 	return &Configuration{
 		QueueName:          queueName,

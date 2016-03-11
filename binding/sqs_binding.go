@@ -9,7 +9,7 @@ import (
 	kitlog "github.com/go-kit/kit/log"
 	levlog "github.com/go-kit/kit/log/levels"
 	"github.com/urlgrey/streammarker-writer/config"
-	"github.com/urlgrey/streammarker-writer/dao"
+	"github.com/urlgrey/streammarker-writer/db"
 	"github.com/urlgrey/streammarker-writer/endpoint"
 
 	"golang.org/x/net/context"
@@ -56,7 +56,7 @@ func consumeMessagesFromQueue(logger levlog.Levels, ctx context.Context, c *conf
 		} else {
 			for _, msg := range resp.Messages {
 				// parse message from JSON
-				message := new(dao.SensorReadingQueueMessage)
+				message := new(db.SensorReadingQueueMessage)
 				json.Unmarshal([]byte(*msg.Body), message)
 
 				// process the message
