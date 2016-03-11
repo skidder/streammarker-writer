@@ -14,7 +14,6 @@ Feature: Write Queued Messages
     And the Sensor Readings table should have a record for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE"
     And the reading has a "Celsius" temperature measurement of 28.3
     And the reading has no location data
-    And the Hourly Sensor Readings table should have a record for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE" with a min of "28.3" and max of "28.3"
 
   @happy
   Scenario: Process two messages where the later is ignored due to sample frequency
@@ -36,7 +35,6 @@ Feature: Write Queued Messages
     And sleep 2 seconds
     Then the queue should have 0 messages visible
     And the Sensor Readings table should have a record for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE"
-    And the Hourly Sensor Readings table should have a record for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE" with a min of "28.3" and max of "31.2"
 
   @happy
   Scenario: Record three messages from the queue
@@ -47,7 +45,6 @@ Feature: Write Queued Messages
     And sleep 2 seconds
     Then the queue should have 0 messages visible
     And the Sensor Readings table should have a record for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE"
-    And the Hourly Sensor Readings table should have a record for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE" with a min of "28.3" and max of "31.2"
 
   @sad
   Scenario: Handle a single message with conflicting account id

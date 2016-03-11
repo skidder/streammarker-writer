@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/urlgrey/streammarker-writer/config"
 	"github.com/urlgrey/streammarker-writer/db"
+	"github.com/urlgrey/streammarker-writer/msg"
 
 	"golang.org/x/net/context"
 )
@@ -14,7 +15,7 @@ type MessageWriter interface {
 }
 
 type messageWriter struct {
-	db *db.Database
+	dynamoDB *db.Database
 }
 
 // NewMessageWriter creates a new healthcheck
@@ -23,10 +24,10 @@ func NewMessageWriter(c *config.Configuration) MessageWriter {
 }
 
 func (h *messageWriter) Run(ctx context.Context, i interface{}) (interface{}, error) {
-	request, ok := i.(*db.SensorReadingQueueMessage)
+	request, ok := i.(*msg.SensorReadingQueueMessage)
 	if !ok {
 		return nil, errors.New("Bad cast of request value")
 	}
 
-	return nil, h.db.WriteSensorReading(request)
+	return nil, h.dynamoDB.WriteSensorReading(request)
 }

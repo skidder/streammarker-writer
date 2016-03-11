@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/urlgrey/streammarker-writer/msg"
 )
 
 const (
@@ -32,7 +33,7 @@ func NewDatabase(dynamoDBService dynamodbiface.DynamoDBAPI) *Database {
 
 // WriteSensorReading will record the Sensor Reading data, first verifying that a corresponding reporting
 // device and account exist and are active
-func (d *Database) WriteSensorReading(r *SensorReadingQueueMessage) error {
+func (d *Database) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 	var err error
 	if len(r.Measurements) == 0 {
 		err = errors.New("No measurements provided in message, ignoring")
@@ -75,187 +76,10 @@ func (d *Database) WriteSensorReading(r *SensorReadingQueueMessage) error {
 	}
 
 	// Write measurements to database
-	if err = d.recordMeasurement(r, sensor, &readingTimestamp); err != nil {
-		return err
-	}
-	err = d.recordHourlyMeasurement(r, sensor, &readingTimestamp)
-	return err
+	return d.recordMeasurement(r, sensor, &readingTimestamp)
 }
 
-func (d *Database) recordHourlyMeasurement(r *SensorReadingQueueMessage, sensor *Sensor, readingTimestamp *time.Time) error {
-	var err error
-	hourlySensorReadingsTableName := fmt.Sprintf("hourly_sensor_readings_%s", readingTimestamp.Format(hourlyTableTimestampFormat))
-	hourlyRoundedTimestamp := time.Date(readingTimestamp.Year(), readingTimestamp.Month(), readingTimestamp.Day(), readingTimestamp.Hour(), 0, 0, 0, readingTimestamp.Location())
-
-	// query the table for an existing hourly record
-	params := &dynamodb.QueryInput{
-		TableName: aws.String(hourlySensorReadingsTableName),
-		AttributesToGet: []*string{
-			aws.String("measurements"),
-		},
-		ScanIndexForward: aws.Bool(false),
-		KeyConditions: map[string]*dynamodb.Condition{
-			"id": {
-				ComparisonOperator: aws.String("EQ"),
-				AttributeValueList: []*dynamodb.AttributeValue{
-					{
-						S: aws.String(fmt.Sprintf("%s:%s", sensor.AccountID, sensor.ID)),
-					},
-				},
-			},
-			"timestamp": {
-				ComparisonOperator: aws.String("EQ"),
-				AttributeValueList: []*dynamodb.AttributeValue{
-					{
-						N: aws.String(fmt.Sprintf("%d", hourlyRoundedTimestamp.Unix())),
-					},
-				},
-			},
-		},
-		Limit: aws.Int64(1),
-	}
-
-	var measurements []MinMaxMeasurement
-	measurements = nil
-	var resp *dynamodb.QueryOutput
-	if resp, err = d.dynamoDBService.Query(params); err == nil {
-		for _, sensorRecord := range resp.Items {
-			if err = json.Unmarshal([]byte(*sensorRecord["measurements"].S), &measurements); err != nil {
-				return err
-			}
-		}
-	} else {
-		// check whether error is due to the table being missing, in which case we should create it
-		listTablesInput := &dynamodb.ListTablesInput{
-			ExclusiveStartTableName: aws.String(hourlySensorReadingsTableName),
-			Limit: aws.Int64(1),
-		}
-		var resp *dynamodb.ListTablesOutput
-		if resp, err = d.dynamoDBService.ListTables(listTablesInput); err == nil {
-			if (resp.LastEvaluatedTableName == nil) || (*resp.LastEvaluatedTableName != hourlySensorReadingsTableName) {
-				// table doesn't exist, let's make it
-				log.Printf("Table doesn't exist, will create it: %s", hourlySensorReadingsTableName)
-				if err = d.createSensorReadingsTable(hourlySensorReadingsTableName); err == nil {
-					log.Println("Created table, attempting to put the hourly sensor reading again")
-				}
-			} else {
-				log.Println("Table exists, will wait in case the hourly sensor readings table is being created")
-				time.Sleep(d.getTableWaitTime())
-			}
-		}
-	}
-	// if no record was returned or table had to be created
-	// build new record to store with sensor reading values as the min/max
-	minMaxRequiresSave := false
-	var mergedMinMax []MinMaxMeasurement
-	if measurements == nil {
-		minMaxRequiresSave = true
-		// creating the table from scratch, so this reading must be min/max
-		mergedMinMax = make([]MinMaxMeasurement, 0)
-		for _, m := range r.Measurements {
-			mergedMinMax = append(mergedMinMax, MinMaxMeasurement{
-				Name: m.Name,
-				Min:  m,
-				Max:  m,
-			})
-		}
-	} else {
-		// else (record was returned)
-		mergedMinMax = make([]MinMaxMeasurement, 0)
-
-		for _, minMaxReading := range measurements {
-			found := false
-			for _, m := range r.Measurements {
-				if minMaxReading.Name == m.Name {
-					found = true
-					break
-				}
-			}
-			// an existing min-max measurement was not present, add it to the set
-			if !found {
-				mergedMinMax = append(mergedMinMax, minMaxReading)
-			}
-		}
-
-		for _, m := range r.Measurements {
-			found := false
-			for _, minMaxReading := range measurements {
-				log.Println("Comparing min-max readings")
-				if minMaxReading.Name == m.Name {
-					log.Println("Found match on name")
-					var mergedMin, mergedMax float64
-					if minMaxReading.Min.Value > m.Value {
-						minMaxRequiresSave = true
-						mergedMin = m.Value
-					} else {
-						mergedMin = minMaxReading.Min.Value
-					}
-
-					if minMaxReading.Max.Value < m.Value {
-						minMaxRequiresSave = true
-						mergedMax = m.Value
-					} else {
-						mergedMax = minMaxReading.Max.Value
-					}
-
-					mergedMinMax = append(mergedMinMax, MinMaxMeasurement{
-						Name: m.Name,
-						Min:  Measurement{Name: m.Name, Unit: m.Unit, Value: mergedMin},
-						Max:  Measurement{Name: m.Name, Unit: m.Unit, Value: mergedMax},
-					})
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				// this reading wasn't present in previous submissions, add it
-				minMaxRequiresSave = true
-				mergedMinMax = append(mergedMinMax, MinMaxMeasurement{
-					Name: m.Name,
-					Min:  m,
-					Max:  m,
-				})
-			}
-		}
-	}
-
-	// store record
-	if minMaxRequiresSave {
-		var hourlyMeasurementsJSON []byte
-		if hourlyMeasurementsJSON, err = json.Marshal(mergedMinMax); err != nil {
-			return err
-		}
-		log.Println("Measurements JSON", string(hourlyMeasurementsJSON))
-		input := &dynamodb.PutItemInput{
-			Item: map[string]*dynamodb.AttributeValue{
-				"id": {
-					S: aws.String(fmt.Sprintf("%s:%s", sensor.AccountID, sensor.ID)),
-				},
-				"timestamp": {
-					N: aws.String(fmt.Sprintf("%d", hourlyRoundedTimestamp.Unix())),
-				},
-				"account_id": {
-					S: aws.String(sensor.AccountID),
-				},
-				"sensor_id": {
-					S: aws.String(sensor.ID),
-				},
-				"measurements": {
-					S: aws.String(string(hourlyMeasurementsJSON)),
-				},
-			},
-			TableName: aws.String(hourlySensorReadingsTableName),
-		}
-
-		if _, err := d.dynamoDBService.PutItem(input); err != nil {
-			log.Println("Error while saving hourly measurement", err.Error())
-		}
-	}
-	return err
-}
-
-func (d *Database) recordMeasurement(r *SensorReadingQueueMessage, sensor *Sensor, readingTimestamp *time.Time) error {
+func (d *Database) recordMeasurement(r *msg.SensorReadingQueueMessage, sensor *Sensor, readingTimestamp *time.Time) error {
 	var err error
 	var measurementsJSON []byte
 	if measurementsJSON, err = json.Marshal(r.Measurements); err != nil {
@@ -564,29 +388,6 @@ type Account struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	State string `json:"state"`
-}
-
-// Measurement contains measurement details
-type Measurement struct {
-	Name  string  `json:"name"`
-	Value float64 `json:"value"`
-	Unit  string  `json:"unit"`
-}
-
-// MinMaxMeasurement has minimum & maximum measurements readings
-type MinMaxMeasurement struct {
-	Name string      `json:"name"`
-	Min  Measurement `json:"min"`
-	Max  Measurement `json:"max"`
-}
-
-// SensorReadingQueueMessage represnets a sensor reading message sitting on the queue
-type SensorReadingQueueMessage struct {
-	RelayID            string        `json:"relay_id"`
-	SensorID           string        `json:"sensor_id"`
-	ReadingTimestamp   int32         `json:"reading_timestamp"`
-	ReportingTimestamp int32         `json:"reporting_timestamp"`
-	Measurements       []Measurement `json:"measurements"`
 }
 
 // Relay represents a StreamMarker relay

@@ -9,8 +9,8 @@ import (
 	kitlog "github.com/go-kit/kit/log"
 	levlog "github.com/go-kit/kit/log/levels"
 	"github.com/urlgrey/streammarker-writer/config"
-	"github.com/urlgrey/streammarker-writer/db"
 	"github.com/urlgrey/streammarker-writer/endpoint"
+	"github.com/urlgrey/streammarker-writer/msg"
 
 	"golang.org/x/net/context"
 )
@@ -54,10 +54,10 @@ func consumeMessagesFromQueue(logger levlog.Levels, ctx context.Context, c *conf
 				return err
 			}
 		} else {
-			for _, msg := range resp.Messages {
+			for _, sqsMessage := range resp.Messages {
 				// parse message from JSON
-				message := new(db.SensorReadingQueueMessage)
-				json.Unmarshal([]byte(*msg.Body), message)
+				message := new(msg.SensorReadingQueueMessage)
+				json.Unmarshal([]byte(*sqsMessage.Body), message)
 
 				// process the message
 				_, err = writerEndpoint.Run(ctx, message)
@@ -68,7 +68,7 @@ func consumeMessagesFromQueue(logger levlog.Levels, ctx context.Context, c *conf
 				// delete it from the queue
 				deleteMessageParams := &sqs.DeleteMessageInput{
 					QueueUrl:      aws.String(c.QueueURL),
-					ReceiptHandle: aws.String(*msg.ReceiptHandle),
+					ReceiptHandle: aws.String(*sqsMessage.ReceiptHandle),
 				}
 				c.SQSService.DeleteMessage(deleteMessageParams)
 			}

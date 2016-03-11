@@ -48,14 +48,6 @@ Then(/^the Sensor Readings table should be empty for account "(.*)" and sensor "
   rec.should be_nil
 end
 
-Then(/^the Hourly Sensor Readings table should have a record for account "(.*?)" and sensor "(.*?)" with a min of "(.*?)" and max of "(.*?)"$/) do |account_id, sensor_id, minReading, maxReading|
-  rec = get_sensor_hourly_readings_dynamo_record(account_id, sensor_id)
-  rec.should_not be_nil
-  rec["measurements"].should_not be_nil
-  JSON.parse(rec["measurements"])[0]["min"]["value"].to_f.should eq(minReading.to_f)
-  JSON.parse(rec["measurements"])[0]["max"]["value"].to_f.should eq(maxReading.to_f)
-end
-
 Then(/^the Sensor Readings table should have "(.*?)" records for account "(.*?)" and sensor "(.*?)"$/) do |item_count, account_id, sensor_id|
   get_sensor_reading_count(account_id, sensor_id).should eq(item_count.to_i)
 end
