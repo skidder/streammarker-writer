@@ -15,12 +15,13 @@ type MessageWriter interface {
 }
 
 type messageWriter struct {
-	dynamoDB db.Database
+	measurementWriter db.MeasurementWriter
+	deviceManager     db.DeviceManager
 }
 
 // NewMessageWriter creates a new healthcheck
 func NewMessageWriter(c *config.Configuration) MessageWriter {
-	return &messageWriter{c.Database}
+	return &messageWriter{c.MeasurementWriter, c.DeviceManager}
 }
 
 func (h *messageWriter) Run(ctx context.Context, i interface{}) (interface{}, error) {
@@ -29,5 +30,5 @@ func (h *messageWriter) Run(ctx context.Context, i interface{}) (interface{}, er
 		return nil, errors.New("Bad cast of request value")
 	}
 
-	return nil, h.dynamoDB.WriteSensorReading(request)
+	return nil, h.measurementWriter.WriteSensorReading(request)
 }

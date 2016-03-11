@@ -21,19 +21,20 @@ const (
 	sampleFrequencyTolerance   = 3
 )
 
-// DynamoDB represents a database to be used for reading & writing measurements
-type dynamoDB struct {
+// DynamoDAO represents a database to be used for reading & writing measurements and
+// managing devices
+type DynamoDAO struct {
 	dynamoDBService dynamodbiface.DynamoDBAPI
 }
 
-// NewDatabase builds a new Database instance
-func NewDatabase(dynamoDBService dynamodbiface.DynamoDBAPI) Database {
-	return &dynamoDB{dynamoDBService: dynamoDBService}
+// NewDynamoDAO builds a new DynamoDAO instance
+func NewDynamoDAO(dynamoDBService dynamodbiface.DynamoDBAPI) *DynamoDAO {
+	return &DynamoDAO{dynamoDBService: dynamoDBService}
 }
 
 // WriteSensorReading will record the Sensor Reading data, first verifying that a corresponding reporting
 // device and account exist and are active
-func (d *dynamoDB) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
+func (d *DynamoDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 	var err error
 	if len(r.Measurements) == 0 {
 		err = errors.New("No measurements provided in message, ignoring")
@@ -41,7 +42,7 @@ func (d *dynamoDB) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 	}
 
 	var relay *Relay
-	if relay, err = d.getRelay(r.RelayID); err != nil {
+	if relay, err = d.GetRelay(r.RelayID); err != nil {
 		return err
 	}
 
@@ -51,14 +52,14 @@ func (d *dynamoDB) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 	}
 
 	var sensor *Sensor
-	if sensor, err = d.getSensor(r.SensorID, relay.AccountID); err != nil {
+	if sensor, err = d.GetSensor(r.SensorID, relay.AccountID); err != nil {
 		return err
 	}
 
 	// if the sensor doesn't exist, then create it and associate with the relay account
 	if sensor == nil {
 		log.Printf("Sensor not found, adding: %s", r.SensorID)
-		if sensor, err = d.createSensor(r.SensorID, relay.AccountID); err != nil {
+		if sensor, err = d.CreateSensor(r.SensorID, relay.AccountID); err != nil {
 			return err
 		}
 	} else {
@@ -79,7 +80,7 @@ func (d *dynamoDB) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 	return d.recordMeasurement(r, sensor, &readingTimestamp)
 }
 
-func (d *dynamoDB) recordMeasurement(r *msg.SensorReadingQueueMessage, sensor *Sensor, readingTimestamp *time.Time) error {
+func (d *DynamoDAO) recordMeasurement(r *msg.SensorReadingQueueMessage, sensor *Sensor, readingTimestamp *time.Time) error {
 	var err error
 	var measurementsJSON []byte
 	if measurementsJSON, err = json.Marshal(r.Measurements); err != nil {
@@ -147,7 +148,7 @@ func (d *dynamoDB) recordMeasurement(r *msg.SensorReadingQueueMessage, sensor *S
 }
 
 // Get the amount of time to wait for a table to finish being created
-func (d *dynamoDB) getTableWaitTime() (t time.Duration) {
+func (d *DynamoDAO) getTableWaitTime() (t time.Duration) {
 	var waitTime string
 	if waitTime = os.Getenv("STREAMMARKER_DYNAMO_WAIT_TIME"); waitTime == "" {
 		waitTime = "30s"
@@ -161,7 +162,7 @@ func (d *dynamoDB) getTableWaitTime() (t time.Duration) {
 }
 
 // Create a sensor-readings table with the provided table name
-func (d *dynamoDB) createSensorReadingsTable(tableName string) (err error) {
+func (d *DynamoDAO) createSensorReadingsTable(tableName string) (err error) {
 	createTableInput := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{ // Required
 			{
@@ -197,7 +198,8 @@ func (d *dynamoDB) createSensorReadingsTable(tableName string) (err error) {
 	return
 }
 
-func (d *dynamoDB) getRelay(relayID string) (relay *Relay, err error) {
+// GetRelay retrieves a relay record by ID
+func (d *DynamoDAO) GetRelay(relayID string) (relay *Relay, err error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": {
@@ -229,7 +231,8 @@ func (d *dynamoDB) getRelay(relayID string) (relay *Relay, err error) {
 	return
 }
 
-func (d *dynamoDB) getSensor(sensorID string, accountID string) (*Sensor, error) {
+// GetSensor retrieves a sensor by ID within the context of an account
+func (d *DynamoDAO) GetSensor(sensorID string, accountID string) (*Sensor, error) {
 	params := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": {
@@ -275,7 +278,7 @@ func (d *dynamoDB) getSensor(sensorID string, accountID string) (*Sensor, error)
 	return sensor, err
 }
 
-func (d *dynamoDB) getTimeOfLastReadingForSensor(sensorID string, accountID string, timestamp *time.Time) (*time.Time, error) {
+func (d *DynamoDAO) getTimeOfLastReadingForSensor(sensorID string, accountID string, timestamp *time.Time) (*time.Time, error) {
 	sensorReadingsTableName := fmt.Sprintf("sensor_readings_%s", timestamp.Format(tableTimestampFormat))
 	params := &dynamodb.QueryInput{
 		TableName: aws.String(sensorReadingsTableName),
@@ -311,7 +314,7 @@ func (d *dynamoDB) getTimeOfLastReadingForSensor(sensorID string, accountID stri
 	return nil, err
 }
 
-func (d *dynamoDB) shouldEvaluateSensorReading(readingTimestamp *time.Time, sensor *Sensor) bool {
+func (d *DynamoDAO) shouldEvaluateSensorReading(readingTimestamp *time.Time, sensor *Sensor) bool {
 	var lastReadingTimestamp *time.Time
 	var err error
 	if lastReadingTimestamp, err = d.getTimeOfLastReadingForSensor(sensor.ID, sensor.AccountID, readingTimestamp); err != nil {
@@ -331,7 +334,8 @@ func (d *dynamoDB) shouldEvaluateSensorReading(readingTimestamp *time.Time, sens
 	return true
 }
 
-func (d *dynamoDB) createSensor(sensorID string, accountID string) (*Sensor, error) {
+// CreateSensor creates a new sensor by ID within an account
+func (d *DynamoDAO) CreateSensor(sensorID string, accountID string) (*Sensor, error) {
 	var err error
 	input := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{

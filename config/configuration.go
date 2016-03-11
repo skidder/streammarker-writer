@@ -24,7 +24,8 @@ type Configuration struct {
 	DynamoDBService    dynamodbiface.DynamoDBAPI
 	QueueName          string
 	QueueURL           string
-	Database           db.Database
+	MeasurementWriter  db.MeasurementWriter
+	DeviceManager      db.DeviceManager
 }
 
 // LoadConfiguration loads the app config
@@ -39,7 +40,7 @@ func LoadConfiguration() *Configuration {
 	sqsService := createSQSConnection(s)
 	dynamoDBService := createDynamoDBConnection(s)
 	queueURL := findQueueURL(sqsService, queueName)
-	db := db.NewDatabase(dynamoDBService)
+	db := db.NewDynamoDAO(dynamoDBService)
 
 	return &Configuration{
 		QueueName:          queueName,
@@ -47,7 +48,8 @@ func LoadConfiguration() *Configuration {
 		SQSService:         sqsService,
 		DynamoDBService:    dynamoDBService,
 		HealthCheckAddress: ":3100",
-		Database:           db,
+		MeasurementWriter:  db,
+		DeviceManager:      db,
 	}
 }
 
