@@ -15,7 +15,7 @@ type MessageWriter interface {
 }
 
 type messageWriter struct {
-	dynamoDB *db.Database
+	dynamoDB db.Database
 }
 
 // NewMessageWriter creates a new healthcheck

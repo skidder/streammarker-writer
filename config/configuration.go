@@ -24,7 +24,7 @@ type Configuration struct {
 	DynamoDBService    dynamodbiface.DynamoDBAPI
 	QueueName          string
 	QueueURL           string
-	Database           *db.Database
+	Database           db.Database
 }
 
 // LoadConfiguration loads the app config
