@@ -24,12 +24,12 @@ type Configuration struct {
 	DynamoDBService    dynamodbiface.DynamoDBAPI
 	QueueName          string
 	QueueURL           string
-	MeasurementWriter  db.MeasurementWriter
+	MeasurementWriters []db.MeasurementWriter
 	DeviceManager      db.DeviceManager
 }
 
 // LoadConfiguration loads the app config
-func LoadConfiguration() *Configuration {
+func LoadConfiguration() (*Configuration, error) {
 	queueName := os.Getenv("STREAMMARKER_QUEUE_NAME")
 	if queueName == "" {
 		queueName = defaultQueueName
@@ -40,7 +40,8 @@ func LoadConfiguration() *Configuration {
 	sqsService := createSQSConnection(s)
 	dynamoDBService := createDynamoDBConnection(s)
 	queueURL := findQueueURL(sqsService, queueName)
-	db := db.NewDynamoDAO(dynamoDBService)
+	deviceManager := db.NewDynamoDAO(dynamoDBService)
+	measurementWriter, err := db.NewInfluxDAO("http://127.0.0.1:8086", "streammarker", "%o5VRnS7^Ui&8r7eus6@uSsjZD1C!AhY", deviceManager)
 
 	return &Configuration{
 		QueueName:          queueName,
@@ -48,9 +49,9 @@ func LoadConfiguration() *Configuration {
 		SQSService:         sqsService,
 		DynamoDBService:    dynamoDBService,
 		HealthCheckAddress: ":3100",
-		MeasurementWriter:  db,
-		DeviceManager:      db,
-	}
+		MeasurementWriters: []db.MeasurementWriter{deviceManager, measurementWriter},
+		DeviceManager:      deviceManager,
+	}, err
 }
 
 func createSQSConnection(s *session.Session) *sqs.SQS {

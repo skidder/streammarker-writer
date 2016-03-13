@@ -17,49 +17,13 @@ def get_fixture_file_as_string(filename)
   File.read(File.join(CUCUMBER_BASE, 'fixtures', filename))
 end
 
-def get_sensor_hourly_readings_dynamo_record(account_id, sensor_id)
-  ddb = get_dynamo_client
-  table_name = "hourly_sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  resp = ddb.query(table_name: table_name,
-    limit: 1,
-    key_conditions: {
-      "id" => {
-        attribute_value_list: [
-          "#{account_id}:#{sensor_id}",
-        ],
-        comparison_operator: "EQ",
-      }
-    })[:items].first
-end
-
-def get_sensor_reading_dynamo_record(account_id, sensor_id)
-  ddb = get_dynamo_client
-  table_name = "sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  resp = ddb.query(table_name: table_name,
-    limit: 1,
-    key_conditions: {
-      "id" => {
-        attribute_value_list: [
-          "#{account_id}:#{sensor_id}",
-        ],
-        comparison_operator: "EQ",
-      }
-    })[:items].first
+def get_latest_sensor_reading_influxdb_record(account_id, sensor_id)
+  get_influxdb_client.query "select * from temperature where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\' limit 1"
 end
 
 def get_sensor_reading_count(account_id, sensor_id)
-  ddb = get_dynamo_client
-  table_name = "sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  resp = ddb.query(table_name: table_name,
-    limit: 1000,
-    key_conditions: {
-      "id" => {
-        attribute_value_list: [
-          "#{account_id}:#{sensor_id}",
-        ],
-        comparison_operator: "EQ",
-      }
-    })[:items].count
+  results = get_influxdb_client.query "select count(value) from temperature where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\'"
+  results[0]["values"][0]["count"]
 end
 
 def put_relay_record(account_id, relay_id, state="active")
@@ -129,6 +93,9 @@ def sensor_readings_table_exists?
 end
 
 def setup_tables
+  get_influxdb_client.create_database('streammarker_measurements')
+
+
   ddb = get_dynamo_client
   ddb.create_table(
       attribute_definitions: [{
@@ -185,6 +152,8 @@ def silently_delete_table(table_name)
 end
 
 def teardown_tables
+  get_influxdb_client.delete_database('streammarker_measurements')
+
   silently_delete_table("relays")
   silently_delete_table("sensors")
   silently_delete_table("accounts")
@@ -198,4 +167,8 @@ def get_dynamo_client
       secret_access_key: 'y',
       endpoint: ENV['STREAMMARKER_DYNAMO_ENDPOINT']
   )  
+end
+
+def get_influxdb_client
+  InfluxDB::Client.new('streammarker_measurements')   
 end

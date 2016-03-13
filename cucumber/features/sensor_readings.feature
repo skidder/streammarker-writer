@@ -45,7 +45,7 @@ Feature: Write Queued Messages
     And sleep 2 seconds
     Then the queue should have 0 messages visible
     And the Sensor Readings table should have a record for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE"
-
+    And the Sensor Readings table should have "3" records for account "account1" and sensor "556AC569-6E7D-44A9-A64C-D900927010FE"
   @sad
   Scenario: Handle a single message with conflicting account id
     Given I have the account "account1" with active Relay "53644F1C-2480-4F9B-9CBA-26D66139D221"

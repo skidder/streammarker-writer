@@ -17,26 +17,30 @@ Then(/^the queue should have (.*) messages visible$/) do |expected_queue_length|
 end
 
 Then(/^the Sensor Readings table should have a record for account "(.*)" and sensor "(.*)"$/) do |account_id, sensor_id|
-  @rec = get_sensor_reading_dynamo_record(account_id, sensor_id)
-  @rec.should_not be_nil
+  @recs = get_latest_sensor_reading_influxdb_record(account_id, sensor_id)
+  @recs.should_not be_nil
+  @recs.should_not be_empty
+  @rec = @recs[0]
 end
 
 Then(/^the reading has a "(.*?)" temperature measurement of (.*?)$/) do |unit, value|
-  @rec["measurements"].should_not be_nil
-  JSON.parse(@rec["measurements"])[0]["unit"].should eq(unit)
-  JSON.parse(@rec["measurements"])[0]["value"].should eq(value.to_f)
+  @rec["values"].should_not be_nil
+  @rec["values"].should_not be_empty
+  @rec["values"][0]["unit"].should eq(unit)
+  @rec["values"][0]["value"].should eq(value.to_f)
 end
 
 Then(/^the reading has a location of (.*?),(.*?)$/) do |lat, lon|
-  @rec["measurements"].should_not be_nil
-  @rec["latitude"].should eq(lat.to_f)
-  @rec["longitude"].should eq(lon.to_f)
+  @rec["values"].should_not be_nil
+  @rec["values"].should_not be_empty
+  @rec["values"][0]["latitude"].should eq(lat.to_f)
+  @rec["values"][0]["longitude"].should eq(lon.to_f)
 end
 
 Then(/^the reading has no location data$/) do
-  @rec["measurements"].should_not be_nil
-  @rec["latitude"].should be_nil
-  @rec["longitude"].should be_nil
+  @rec["values"].should_not be_nil
+  @rec["values"][0]["latitude"].should be_nil
+  @rec["values"][0]["longitude"].should be_nil
 end
 
 Then(/^the Sensor Readings table should be nonexistent$/) do
@@ -44,8 +48,7 @@ Then(/^the Sensor Readings table should be nonexistent$/) do
 end
 
 Then(/^the Sensor Readings table should be empty for account "(.*)" and sensor "(.*)"$/) do |account_id, sensor_id|
-  rec = get_sensor_reading_dynamo_record(account_id, sensor_id)
-  rec.should be_nil
+  get_latest_sensor_reading_influxdb_record(account_id, sensor_id).should be_nil  
 end
 
 Then(/^the Sensor Readings table should have "(.*?)" records for account "(.*?)" and sensor "(.*?)"$/) do |item_count, account_id, sensor_id|

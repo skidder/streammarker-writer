@@ -8,6 +8,7 @@ require 'erubis'
 require 'aws-sdk-v1'
 require 'aws-sdk'
 require 'json'
+require 'influxdb'
 
 require_relative 'feature_helper'
 
@@ -104,12 +105,6 @@ def startup
   @fakedynamo_process.io.stderr = @fakedynamo_process.io.stdout
   @fakedynamo_process.leader = true
   @fakedynamo_process.start
-
-  # @fakedynamo_process = ChildProcess.build('fake_dynamo', '--port', FAKEDYNAMO_PORT, '--db', FAKEDYNAMO_ROOT)
-  # @fakedynamo_process.io.stdout = File.new(LOG_DIR + '/fakedynamo.log', 'w')
-  # @fakedynamo_process.io.stderr = @fakedynamo_process.io.stdout
-  # @fakedynamo_process.leader = true
-  # @fakedynamo_process.start
 
   # Again, give dynamodb a second to start before we try to use it.
   sleep(1)

@@ -15,13 +15,13 @@ type MessageWriter interface {
 }
 
 type messageWriter struct {
-	measurementWriter db.MeasurementWriter
-	deviceManager     db.DeviceManager
+	measurementWriters []db.MeasurementWriter
+	deviceManager      db.DeviceManager
 }
 
 // NewMessageWriter creates a new healthcheck
 func NewMessageWriter(c *config.Configuration) MessageWriter {
-	return &messageWriter{c.MeasurementWriter, c.DeviceManager}
+	return &messageWriter{c.MeasurementWriters, c.DeviceManager}
 }
 
 func (h *messageWriter) Run(ctx context.Context, i interface{}) (interface{}, error) {
@@ -30,5 +30,10 @@ func (h *messageWriter) Run(ctx context.Context, i interface{}) (interface{}, er
 		return nil, errors.New("Bad cast of request value")
 	}
 
-	return nil, h.measurementWriter.WriteSensorReading(request)
+	for _, w := range h.measurementWriters {
+		if err := w.WriteSensorReading(request); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
