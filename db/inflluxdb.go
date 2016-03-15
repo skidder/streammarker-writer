@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -76,7 +77,12 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 		return err
 	}
 
+	readingTimestamp := time.Unix(int64(r.ReadingTimestamp), int64(0))
 	for _, m := range r.Measurements {
+		if i.shouldEvaluateSensorReading(&readingTimestamp, sensor, m.Name) == false {
+			continue
+		}
+
 		// Create a point and add to batch
 		tags := map[string]string{
 			"account_id": sensor.AccountID,
@@ -92,7 +98,7 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 			fields["longitude"] = sensor.Longitude
 		}
 		var pt *client.Point
-		pt, err = client.NewPoint(m.Name, tags, fields, time.Unix(int64(r.ReadingTimestamp), 0))
+		pt, err = client.NewPoint(m.Name, tags, fields, readingTimestamp)
 		if err != nil {
 			return err
 		}
@@ -101,4 +107,56 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 
 	// Write the batch
 	return i.c.Write(bp)
+}
+
+// queryDB convenience function to query the database
+func (i *InfluxDAO) queryDB(cmd string) (res []client.Result, err error) {
+	q := client.Query{
+		Command:  cmd,
+		Database: defaultDatabase,
+	}
+	if response, err := i.c.Query(q); err == nil {
+		if response.Error() != nil {
+			return res, response.Error()
+		}
+		res = response.Results
+	} else {
+		return res, err
+	}
+	return res, nil
+}
+
+func (i *InfluxDAO) getTimeOfLastReadingForSensor(sensorID string, accountID string, measurementName string, timestamp *time.Time) (*time.Time, error) {
+	res, err := i.queryDB(fmt.Sprintf("select * from %s where sensor_id = %s and account_id = %s order by time desc limit 1", measurementName, sensorID, accountID))
+	if err != nil {
+		return nil, err
+	}
+	if len(res) != 1 {
+		// the query returned no rows, must be empty
+		return nil, nil
+	}
+	row := res[0].Series[0].Values[0]
+	var t time.Time
+	t, err = time.Parse(time.RFC3339, row[0].(string))
+	return &t, err
+}
+
+func (i *InfluxDAO) shouldEvaluateSensorReading(readingTimestamp *time.Time, sensor *Sensor, measurementName string) bool {
+	var lastReadingTimestamp *time.Time
+	var err error
+	if lastReadingTimestamp, err = i.getTimeOfLastReadingForSensor(sensor.ID, sensor.AccountID, measurementName, readingTimestamp); err != nil {
+		log.Printf("Error while looking up timestamp of last reading for sensor, proceeding anyway: Sensor ID=%s, Error=%s", sensor.ID, err.Error())
+		return true
+	}
+
+	if lastReadingTimestamp != nil {
+		secondsElapsed := readingTimestamp.Sub(*lastReadingTimestamp).Seconds()
+		sampleFrequency := sensor.SampleFrequency
+		log.Printf("Seconds since last reading was written: %d", int32(secondsElapsed))
+		if secondsElapsed < float64(sampleFrequency-sampleFrequencyTolerance) {
+			log.Printf("Ignoring reading for sensor %s due to sample frequency limit (%d seconds)", sensor.ID, sampleFrequency)
+			return false
+		}
+	}
+	return true
 }

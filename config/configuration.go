@@ -24,7 +24,7 @@ type Configuration struct {
 	DynamoDBService    dynamodbiface.DynamoDBAPI
 	QueueName          string
 	QueueURL           string
-	MeasurementWriters []db.MeasurementWriter
+	MeasurementWriter  db.MeasurementWriter
 	DeviceManager      db.DeviceManager
 }
 
@@ -49,7 +49,7 @@ func LoadConfiguration() (*Configuration, error) {
 		SQSService:         sqsService,
 		DynamoDBService:    dynamoDBService,
 		HealthCheckAddress: ":3100",
-		MeasurementWriters: []db.MeasurementWriter{deviceManager, measurementWriter},
+		MeasurementWriter:  measurementWriter,
 		DeviceManager:      deviceManager,
 	}, err
 }
