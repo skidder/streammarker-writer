@@ -10,24 +10,21 @@ import (
 	"github.com/urlgrey/streammarker-writer/msg"
 )
 
-const (
-	defaultDatabase = "streammarker_measurements"
-)
-
 // InfluxDAO represents a DAO capable of interacting with InfluxDB
 type InfluxDAO struct {
 	c             client.Client
 	deviceManager DeviceManager
+	databaseName  string
 }
 
 // NewInfluxDAO creates a new DAO for interacting with InfluxDB
-func NewInfluxDAO(address string, username string, password string, deviceManager DeviceManager) (*InfluxDAO, error) {
+func NewInfluxDAO(address string, username string, password string, databaseName string, deviceManager DeviceManager) (*InfluxDAO, error) {
 	c, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     address,
 		Username: username,
 		Password: password,
 	})
-	return &InfluxDAO{c, deviceManager}, err
+	return &InfluxDAO{c, deviceManager, databaseName}, err
 }
 
 // WriteSensorReading will record the Sensor Reading data, first verifying that a corresponding reporting
@@ -70,7 +67,7 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 
 	// Create a new point batch
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
-		Database:  defaultDatabase,
+		Database:  i.databaseName,
 		Precision: "s",
 	})
 	if err != nil {
@@ -105,6 +102,11 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 		bp.AddPoint(pt)
 	}
 
+	if len(bp.Points()) == 0 {
+		// don't attempt to write to database if there are no points
+		return nil
+	}
+
 	// Write the batch
 	return i.c.Write(bp)
 }
@@ -113,7 +115,7 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 func (i *InfluxDAO) queryDB(cmd string) (res []client.Result, err error) {
 	q := client.Query{
 		Command:  cmd,
-		Database: defaultDatabase,
+		Database: i.databaseName,
 	}
 	if response, err := i.c.Query(q); err == nil {
 		if response.Error() != nil {

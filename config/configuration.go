@@ -14,7 +14,10 @@ import (
 )
 
 const (
-	defaultQueueName = "streammarker-collector-messages"
+	defaultQueueName        = "streammarker-collector-messages"
+	defaultInfluxDBUsername = "streammarker"
+	defaultInfluxDBAddress  = "http://127.0.0.1:8086"
+	defaultInfluxDBName     = "streammarker_measurements"
 )
 
 // Configuration holds application configuration details
@@ -35,13 +38,28 @@ func LoadConfiguration() (*Configuration, error) {
 		queueName = defaultQueueName
 	}
 
+	influxDBUsername := os.Getenv("STREAMMARKER_INFLUXDB_USERNAME")
+	if influxDBUsername == "" {
+		influxDBUsername = defaultInfluxDBUsername
+	}
+	influxDBPassword := os.Getenv("STREAMMARKER_INFLUXDB_PASSWORD")
+	influxDBAddress := os.Getenv("STREAMMARKER_INFLUXDB_ADDRESS")
+	if influxDBAddress == "" {
+		influxDBAddress = defaultInfluxDBAddress
+	}
+
+	influxDBName := os.Getenv("STREAMMARKER_INFLUXDB_NAME")
+	if influxDBName == "" {
+		influxDBName = defaultInfluxDBName
+	}
+
 	// Create external service connections
 	s := session.New()
 	sqsService := createSQSConnection(s)
 	dynamoDBService := createDynamoDBConnection(s)
 	queueURL := findQueueURL(sqsService, queueName)
 	deviceManager := db.NewDynamoDAO(dynamoDBService)
-	measurementWriter, err := db.NewInfluxDAO("http://127.0.0.1:8086", "streammarker", "%o5VRnS7^Ui&8r7eus6@uSsjZD1C!AhY", deviceManager)
+	measurementWriter, err := db.NewInfluxDAO(influxDBAddress, influxDBUsername, influxDBPassword, influxDBName, deviceManager)
 
 	return &Configuration{
 		QueueName:          queueName,
