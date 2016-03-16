@@ -129,11 +129,11 @@ func (i *InfluxDAO) queryDB(cmd string) (res []client.Result, err error) {
 }
 
 func (i *InfluxDAO) getTimeOfLastReadingForSensor(sensorID string, accountID string, measurementName string, timestamp *time.Time) (*time.Time, error) {
-	res, err := i.queryDB(fmt.Sprintf("select * from %s where sensor_id = %s and account_id = %s order by time desc limit 1", measurementName, sensorID, accountID))
+	res, err := i.queryDB(fmt.Sprintf("SELECT * from %s where sensor_id = '%s' and account_id = '%s' order by time desc limit 1", measurementName, sensorID, accountID))
 	if err != nil {
 		return nil, err
 	}
-	if len(res) != 1 {
+	if len(res) != 1 || res[0].Series == nil {
 		// the query returned no rows, must be empty
 		return nil, nil
 	}
@@ -152,6 +152,7 @@ func (i *InfluxDAO) shouldEvaluateSensorReading(readingTimestamp *time.Time, sen
 	}
 
 	if lastReadingTimestamp != nil {
+		log.Printf("Evaluating timestamp: %d", readingTimestamp.Unix())
 		secondsElapsed := readingTimestamp.Sub(*lastReadingTimestamp).Seconds()
 		sampleFrequency := sensor.SampleFrequency
 		log.Printf("Seconds since last reading was written: %d", int32(secondsElapsed))

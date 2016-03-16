@@ -23,7 +23,7 @@ end
 
 def get_sensor_reading_count(account_id, sensor_id)
   results = get_influxdb_client.query "select count(value) from temperature where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\'"
-  results[0]["values"][0]["count"]
+  results != nil && results.length > 0 ? results[0]["values"][0]["count"] : 0
 end
 
 def put_relay_record(account_id, relay_id, state="active")
@@ -49,7 +49,7 @@ def put_sensor_record(account_id, sensor_id, state="active")
                  "location_enabled" => true,
                  "latitude" => 100.2,
                  "longitude" => 150.1,
-                 "sample_frequency" => 1
+                 "sample_frequency" => 10
                 }
               )
 end
@@ -80,22 +80,12 @@ def number_of_messages_visible_in_queue(queue)
 end
 
 def sensor_readings_table_exists?
-  ddb = get_dynamo_client
-  table_name = "sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  begin
-    resp = ddb.describe_table({
-      table_name: table_name,
-    })
-    return (resp.table ? true : false)
-  rescue Aws::DynamoDB::Errors::ResourceNotFoundException
-    return false
-  end
+  results = get_influxdb_client.query "select count(value) from temperature"
+  puts results.inspect
+  return (results != nil && results.length > 0)
 end
 
 def setup_tables
-  get_influxdb_client.create_database('streammarker_measurements')
-
-
   ddb = get_dynamo_client
   ddb.create_table(
       attribute_definitions: [{
@@ -143,7 +133,7 @@ def setup_tables
       })
 end  
 
-def silently_delete_table(table_name)
+def silently_delete_ddb_table(table_name)
   ddb = get_dynamo_client
   begin
     ddb.delete_table(table_name: table_name)
@@ -151,14 +141,19 @@ def silently_delete_table(table_name)
   end
 end
 
-def teardown_tables
-  get_influxdb_client.delete_database('streammarker_measurements')
+def silently_delete_influxdb_data(table_name)
+  begin
+    get_influxdb_client.query "drop series from #{table_name}"
+  rescue
+  end
+end
 
-  silently_delete_table("relays")
-  silently_delete_table("sensors")
-  silently_delete_table("accounts")
-  silently_delete_table("sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}")
-  silently_delete_table("hourly_sensor_readings_#{Time.at(1433031540).strftime('%Y')}")
+def teardown_tables
+  silently_delete_influxdb_data("temperature")
+  silently_delete_ddb_table("relays")
+  silently_delete_ddb_table("sensors")
+  silently_delete_ddb_table("accounts")
+  silently_delete_ddb_table("sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}")
 end
 
 def get_dynamo_client
