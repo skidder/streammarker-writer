@@ -81,7 +81,6 @@ end
 
 def sensor_readings_table_exists?
   results = get_influxdb_client.query "select count(value) from temperature"
-  puts results.inspect
   return (results != nil && results.length > 0)
 end
 
