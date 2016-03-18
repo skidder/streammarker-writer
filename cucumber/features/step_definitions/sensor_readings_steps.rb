@@ -23,11 +23,10 @@ Then(/^the Sensor Readings table should have a record for account "(.*)" and sen
   @rec = @recs[0]
 end
 
-Then(/^the reading has a "(.*?)" temperature measurement of (.*?)$/) do |unit, value|
+Then(/^the reading has a "(.*?)" measurement of (.*?)$/) do |name, value|
   @rec["values"].should_not be_nil
   @rec["values"].should_not be_empty
-  @rec["values"][0]["unit"].should eq(unit)
-  @rec["values"][0]["value"].should eq(value.to_f)
+  @rec["values"][0][name].should eq(value.to_f)
 end
 
 Then(/^the reading has a location of (.*?),(.*?)$/) do |lat, lon|

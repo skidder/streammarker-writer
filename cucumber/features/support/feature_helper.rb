@@ -18,11 +18,11 @@ def get_fixture_file_as_string(filename)
 end
 
 def get_latest_sensor_reading_influxdb_record(account_id, sensor_id)
-  get_influxdb_client.query "select * from temperature where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\' limit 1"
+  get_influxdb_client.query "select * from sensor_measurements where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\' limit 1"
 end
 
 def get_sensor_reading_count(account_id, sensor_id)
-  results = get_influxdb_client.query "select count(value) from temperature where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\'"
+  results = get_influxdb_client.query "select count(temperature) from sensor_measurements where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\'"
   results != nil && results.length > 0 ? results[0]["values"][0]["count"] : 0
 end
 
@@ -80,7 +80,7 @@ def number_of_messages_visible_in_queue(queue)
 end
 
 def sensor_readings_table_exists?
-  results = get_influxdb_client.query "select count(value) from temperature"
+  results = get_influxdb_client.query "select count(value) from sensor_measurements"
   return (results != nil && results.length > 0)
 end
 
@@ -148,7 +148,7 @@ def silently_delete_influxdb_data(table_name)
 end
 
 def teardown_tables
-  silently_delete_influxdb_data("temperature")
+  silently_delete_influxdb_data("sensor_measurements")
   silently_delete_ddb_table("relays")
   silently_delete_ddb_table("sensors")
   silently_delete_ddb_table("accounts")
