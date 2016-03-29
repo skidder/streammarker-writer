@@ -30,5 +30,8 @@ func (h *messageWriter) Run(ctx context.Context, i interface{}) (interface{}, er
 		return nil, errors.New("Bad cast of request value")
 	}
 
-	return nil, h.measurementWriter.WriteSensorReading(request)
+	if err := h.measurementWriter.WriteSensorReading(request); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }

@@ -8,6 +8,7 @@ require 'erubis'
 require 'aws-sdk-v1'
 require 'aws-sdk'
 require 'json'
+require 'influxdb'
 
 require_relative 'feature_helper'
 
@@ -105,15 +106,16 @@ def startup
   @fakedynamo_process.leader = true
   @fakedynamo_process.start
 
-  # @fakedynamo_process = ChildProcess.build('fake_dynamo', '--port', FAKEDYNAMO_PORT, '--db', FAKEDYNAMO_ROOT)
-  # @fakedynamo_process.io.stdout = File.new(LOG_DIR + '/fakedynamo.log', 'w')
-  # @fakedynamo_process.io.stderr = @fakedynamo_process.io.stdout
-  # @fakedynamo_process.leader = true
-  # @fakedynamo_process.start
-
   # Again, give dynamodb a second to start before we try to use it.
   sleep(1)
 
+  @influxdb_process = ChildProcess.build('influxd')
+  @influxdb_process.io.stdout = File.new(LOG_DIR + '/influxdb.log', 'w')
+  @influxdb_process.io.stderr = @influxdb_process.io.stdout
+  @influxdb_process.start
+
+  # Again, give dynamodb a second to start before we try to use it.
+  sleep(1)
 
   puts 'Forking to start application under test'
   @app_process = ChildProcess.build('go', 'run', '../writer.go')
@@ -125,6 +127,7 @@ end
 
 def shutdown
   @app_process.stop
+  @influxdb_process.stop
   @fakesqs_process.stop
   @fakedynamo_process.stop
 end
@@ -135,6 +138,7 @@ puts 'Application Endpoint: ' + APPLICATION_ENDPOINT.to_s
 puts 'Log Directory: ' + LOG_DIR.to_s
 puts "fakesqs running at: #{FAKESQS_HOST}:#{FAKESQS_PORT}"
 puts "fakedynamo running at: #{FAKEDYNAMO_HOST}:#{FAKEDYNAMO_PORT}"
+puts "influxdb running"
 
 AWS.config(use_ssl: false, :access_key_id => 'x', :secret_access_key => 'y')
 

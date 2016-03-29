@@ -24,7 +24,11 @@ func main() {
 	stdlog.SetFlags(0)                                // flags are handled in our logger
 
 	// read configuration from environment
-	c := config.LoadConfiguration()
+	c, err := config.LoadConfiguration()
+	if err != nil {
+		logger.Log("fatal", err.Error())
+		return
+	}
 
 	// Mechanical stuff
 	rand.Seed(time.Now().UnixNano())

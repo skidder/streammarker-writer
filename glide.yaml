@@ -14,6 +14,10 @@ import:
   - service/dynamodb
   - service/sqs
   - aws/awserr
+- package: github.com/influxdata/influxdb
+  version: 3d544a9136386beeef35e09990856a7537653421
+  subpackages:
+  - client
 - package: github.com/gorilla/context
   version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
 - package: github.com/gorilla/mux

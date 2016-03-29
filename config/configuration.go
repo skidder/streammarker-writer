@@ -14,7 +14,10 @@ import (
 )
 
 const (
-	defaultQueueName = "streammarker-collector-messages"
+	defaultQueueName        = "streammarker-collector-messages"
+	defaultInfluxDBUsername = "streammarker"
+	defaultInfluxDBAddress  = "http://127.0.0.1:8086"
+	defaultInfluxDBName     = "streammarker_measurements"
 )
 
 // Configuration holds application configuration details
@@ -29,10 +32,25 @@ type Configuration struct {
 }
 
 // LoadConfiguration loads the app config
-func LoadConfiguration() *Configuration {
+func LoadConfiguration() (*Configuration, error) {
 	queueName := os.Getenv("STREAMMARKER_QUEUE_NAME")
 	if queueName == "" {
 		queueName = defaultQueueName
+	}
+
+	influxDBUsername := os.Getenv("STREAMMARKER_INFLUXDB_USERNAME")
+	if influxDBUsername == "" {
+		influxDBUsername = defaultInfluxDBUsername
+	}
+	influxDBPassword := os.Getenv("STREAMMARKER_INFLUXDB_PASSWORD")
+	influxDBAddress := os.Getenv("STREAMMARKER_INFLUXDB_ADDRESS")
+	if influxDBAddress == "" {
+		influxDBAddress = defaultInfluxDBAddress
+	}
+
+	influxDBName := os.Getenv("STREAMMARKER_INFLUXDB_NAME")
+	if influxDBName == "" {
+		influxDBName = defaultInfluxDBName
 	}
 
 	// Create external service connections
@@ -40,7 +58,8 @@ func LoadConfiguration() *Configuration {
 	sqsService := createSQSConnection(s)
 	dynamoDBService := createDynamoDBConnection(s)
 	queueURL := findQueueURL(sqsService, queueName)
-	db := db.NewDynamoDAO(dynamoDBService)
+	deviceManager := db.NewDynamoDAO(dynamoDBService)
+	measurementWriter, err := db.NewInfluxDAO(influxDBAddress, influxDBUsername, influxDBPassword, influxDBName, deviceManager)
 
 	return &Configuration{
 		QueueName:          queueName,
@@ -48,9 +67,9 @@ func LoadConfiguration() *Configuration {
 		SQSService:         sqsService,
 		DynamoDBService:    dynamoDBService,
 		HealthCheckAddress: ":3100",
-		MeasurementWriter:  db,
-		DeviceManager:      db,
-	}
+		MeasurementWriter:  measurementWriter,
+		DeviceManager:      deviceManager,
+	}, err
 }
 
 func createSQSConnection(s *session.Session) *sqs.SQS {

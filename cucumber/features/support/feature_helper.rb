@@ -17,49 +17,13 @@ def get_fixture_file_as_string(filename)
   File.read(File.join(CUCUMBER_BASE, 'fixtures', filename))
 end
 
-def get_sensor_hourly_readings_dynamo_record(account_id, sensor_id)
-  ddb = get_dynamo_client
-  table_name = "hourly_sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  resp = ddb.query(table_name: table_name,
-    limit: 1,
-    key_conditions: {
-      "id" => {
-        attribute_value_list: [
-          "#{account_id}:#{sensor_id}",
-        ],
-        comparison_operator: "EQ",
-      }
-    })[:items].first
-end
-
-def get_sensor_reading_dynamo_record(account_id, sensor_id)
-  ddb = get_dynamo_client
-  table_name = "sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  resp = ddb.query(table_name: table_name,
-    limit: 1,
-    key_conditions: {
-      "id" => {
-        attribute_value_list: [
-          "#{account_id}:#{sensor_id}",
-        ],
-        comparison_operator: "EQ",
-      }
-    })[:items].first
+def get_latest_sensor_reading_influxdb_record(account_id, sensor_id)
+  get_influxdb_client.query "select * from sensor_measurements where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\' limit 1"
 end
 
 def get_sensor_reading_count(account_id, sensor_id)
-  ddb = get_dynamo_client
-  table_name = "sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  resp = ddb.query(table_name: table_name,
-    limit: 1000,
-    key_conditions: {
-      "id" => {
-        attribute_value_list: [
-          "#{account_id}:#{sensor_id}",
-        ],
-        comparison_operator: "EQ",
-      }
-    })[:items].count
+  results = get_influxdb_client.query "select count(temperature) from sensor_measurements where account_id = \'#{account_id}\' and sensor_id = \'#{sensor_id}\'"
+  results != nil && results.length > 0 ? results[0]["values"][0]["count"] : 0
 end
 
 def put_relay_record(account_id, relay_id, state="active")
@@ -85,7 +49,7 @@ def put_sensor_record(account_id, sensor_id, state="active")
                  "location_enabled" => true,
                  "latitude" => 100.2,
                  "longitude" => 150.1,
-                 "sample_frequency" => 1
+                 "sample_frequency" => 10
                 }
               )
 end
@@ -116,16 +80,8 @@ def number_of_messages_visible_in_queue(queue)
 end
 
 def sensor_readings_table_exists?
-  ddb = get_dynamo_client
-  table_name = "sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}"
-  begin
-    resp = ddb.describe_table({
-      table_name: table_name,
-    })
-    return (resp.table ? true : false)
-  rescue Aws::DynamoDB::Errors::ResourceNotFoundException
-    return false
-  end
+  results = get_influxdb_client.query "select count(value) from sensor_measurements"
+  return (results != nil && results.length > 0)
 end
 
 def setup_tables
@@ -176,7 +132,7 @@ def setup_tables
       })
 end  
 
-def silently_delete_table(table_name)
+def silently_delete_ddb_table(table_name)
   ddb = get_dynamo_client
   begin
     ddb.delete_table(table_name: table_name)
@@ -184,12 +140,19 @@ def silently_delete_table(table_name)
   end
 end
 
+def silently_delete_influxdb_data(table_name)
+  begin
+    get_influxdb_client.query "drop series from #{table_name}"
+  rescue
+  end
+end
+
 def teardown_tables
-  silently_delete_table("relays")
-  silently_delete_table("sensors")
-  silently_delete_table("accounts")
-  silently_delete_table("sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}")
-  silently_delete_table("hourly_sensor_readings_#{Time.at(1433031540).strftime('%Y')}")
+  silently_delete_influxdb_data("sensor_measurements")
+  silently_delete_ddb_table("relays")
+  silently_delete_ddb_table("sensors")
+  silently_delete_ddb_table("accounts")
+  silently_delete_ddb_table("sensor_readings_#{Time.at(1433031540).strftime('%Y-%m')}")
 end
 
 def get_dynamo_client
@@ -198,4 +161,8 @@ def get_dynamo_client
       secret_access_key: 'y',
       endpoint: ENV['STREAMMARKER_DYNAMO_ENDPOINT']
   )  
+end
+
+def get_influxdb_client
+  InfluxDB::Client.new('streammarker_measurements')   
 end
