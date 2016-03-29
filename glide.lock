@@ -1,5 +1,5 @@
 hash: 87509a511a3717c000d9d742e3f15e024eaf7f225f162ff407fbf4715e9c1819
-updated: 2016-03-17T07:20:46.644863702-07:00
+updated: 2016-03-29T06:21:49.209392428-10:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 4f9a300f2af32035b3ae8bd0ce9b0fe8412df743
@@ -37,7 +37,7 @@ imports:
   - aws/ec2metadata
   - private/protocol/json/jsonutil
 - name: github.com/go-ini/ini
-  version: 776aa739ce9373377cd16f526cdf06cb4c89b40f
+  version: 12f418cc7edc5a618a51407b7ac1f1f512139df3
 - name: github.com/go-kit/kit
   version: 12b51051246657007b9296e0b289fb00dd3ab0a7
   subpackages:
@@ -58,6 +58,8 @@ imports:
   - pkg/escape
 - name: github.com/jmespath/go-jmespath
   version: 0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74
+- name: github.com/kr/logfmt
+  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/stretchr/testify
   version: e22aedd37671fb115be6c0c25129c405cb575cfd
   subpackages:
@@ -65,12 +67,12 @@ imports:
 - name: github.com/vaughan0/go-ini
   version: a98ad7ee00ec53921f08832bc06ecf7fd600e6a1
 - name: golang.org/x/net
-  version: 35b06af0720201bc2f326773a80767387544f8c4
+  version: 31df19d69da8728e9220def59b80ee577c3e48bf
   subpackages:
   - context
   - context/ctxhttp
 - name: gopkg.in/logfmt.v0
-  version: ffc984a0eaff44e46e1f42d6e0a65b665587a938
+  version: 08ab82a63ef462ac643ec79e659f023891f588f5
 - name: gopkg.in/stack.v1
   version: 0585967eab0016c8e4e2d55ac20585b469574cec
 devImports: []
