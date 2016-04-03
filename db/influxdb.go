@@ -151,7 +151,7 @@ func (i *InfluxDAO) shouldEvaluateSensorReading(readingTimestamp *time.Time, sen
 		log.Printf("Evaluating timestamp: %d", readingTimestamp.Unix())
 		secondsElapsed := readingTimestamp.Sub(*lastReadingTimestamp).Seconds()
 		sampleFrequency := sensor.SampleFrequency
-		log.Printf("Seconds since last reading was written: %d", secondsElapsed)
+		log.Printf("Seconds since last reading was written: %f", secondsElapsed)
 		if secondsElapsed < float64(sampleFrequency-sampleFrequencyTolerance) {
 			log.Printf("Ignoring reading for sensor %s due to sample frequency limit (%d seconds)", sensor.ID, sampleFrequency)
 			return false
