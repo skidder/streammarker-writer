@@ -46,7 +46,7 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 	}
 
 	if !relay.isActive() {
-		err = errors.New("Reporting device is not active, will not record sensor reading")
+		err = errors.New("Relay is inactive, will not record sensor reading")
 		return err
 	}
 
@@ -61,12 +61,10 @@ func (i *InfluxDAO) WriteSensorReading(r *msg.SensorReadingQueueMessage) error {
 		if sensor, err = i.deviceManager.CreateSensor(r.SensorID, relay.AccountID); err != nil {
 			return err
 		}
-	} else {
-		if relay.AccountID != sensor.AccountID {
-			log.Printf("Sensor and Relay use different account IDs, ignoring: sensor account=%s, relay account=%s", sensor.AccountID, relay.AccountID)
-			err = errors.New("Sensor and Relay use different account IDs, ignoring")
-			return err
-		}
+	} else if relay.AccountID != sensor.AccountID {
+		log.Printf("Sensor and Relay use different account IDs, ignoring: sensor account=%s, relay account=%s", sensor.AccountID, relay.AccountID)
+		err = errors.New("Sensor and Relay use different account IDs, ignoring")
+		return err
 	}
 
 	// Create a new point batch
@@ -153,7 +151,7 @@ func (i *InfluxDAO) shouldEvaluateSensorReading(readingTimestamp *time.Time, sen
 		log.Printf("Evaluating timestamp: %d", readingTimestamp.Unix())
 		secondsElapsed := readingTimestamp.Sub(*lastReadingTimestamp).Seconds()
 		sampleFrequency := sensor.SampleFrequency
-		log.Printf("Seconds since last reading was written: %d", int32(secondsElapsed))
+		log.Printf("Seconds since last reading was written: %d", secondsElapsed)
 		if secondsElapsed < float64(sampleFrequency-sampleFrequencyTolerance) {
 			log.Printf("Ignoring reading for sensor %s due to sample frequency limit (%d seconds)", sensor.ID, sampleFrequency)
 			return false
