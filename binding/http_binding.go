@@ -38,14 +38,14 @@ func createHealthCheckRouter(logger kitlog.Logger, ctx context.Context, healthCh
 		kithttp.NewServer(
 			ctx,
 			healthCheckEndpoint.Run,
-			func(*http.Request) (interface{}, error) { return struct{}{}, nil },
+			func(context.Context, *http.Request) (interface{}, error) { return struct{}{}, nil },
 			encodeHealthCheckHTTPResponse,
 			kithttp.ServerErrorLogger(logger),
 		)).Methods(getHTTPMethod)
 	return router
 }
 
-func encodeHealthCheckHTTPResponse(w http.ResponseWriter, i interface{}) error {
+func encodeHealthCheckHTTPResponse(c context.Context, w http.ResponseWriter, i interface{}) error {
 	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(i.(*endpoint.HealthCheckResponse))
 }

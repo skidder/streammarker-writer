@@ -23,7 +23,7 @@ import:
 - package: github.com/gorilla/mux
   version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
 - package: github.com/go-kit/kit
-  version: 12b51051246657007b9296e0b289fb00dd3ab0a7
+  version: 8d97c7704fec2d9735cf1c6c96c32a75056c4dfd
 - package: github.com/stretchr/testify
   version: e22aedd37671fb115be6c0c25129c405cb575cfd
   subpackages:
