@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb/client/v2"
-	"github.com/urlgrey/streammarker-writer/msg"
+	"github.com/skidder/streammarker-writer/msg"
 )
 
 const (

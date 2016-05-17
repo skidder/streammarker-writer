@@ -7,12 +7,6 @@ clean:
 	if [ -d $(COVERAGEDIR) ]; then rm -rf $(COVERAGEDIR); fi
 	if [ -d bin ]; then rm -rf bin; fi
 
-godep:
-	go get github.com/tools/godep
-
-godep-save:
-	godep save ./...
-
 all: build test
 
 build:
@@ -35,8 +29,8 @@ run: build
 
 docker-build:
 	docker info
-	docker build -t urlgrey/streammarker-writer:latest .
+	docker build -t skidder/streammarker-writer:latest .
 
 docker-deploy:
 	docker login -e ${DOCKER_EMAIL} -u ${DOCKER_USER} -p ${DOCKER_PASS}
-	docker push urlgrey/streammarker-writer:latest
+	docker push skidder/streammarker-writer:latest

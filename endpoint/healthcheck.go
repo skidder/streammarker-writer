@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	"github.com/urlgrey/streammarker-writer/config"
+	"github.com/skidder/streammarker-writer/config"
 
 	"golang.org/x/net/context"
 )

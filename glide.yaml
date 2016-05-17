@@ -28,5 +28,7 @@ import:
   version: e22aedd37671fb115be6c0c25129c405cb575cfd
   subpackages:
   - assert
-- package: github.com/vaughan0/go-ini
-  version: a98ad7ee00ec53921f08832bc06ecf7fd600e6a1
+- package: golang.org/x/net
+  version: 195180cfebf7362bd243a52477697895128c8777
+  subpackages:
+  - context

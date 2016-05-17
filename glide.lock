@@ -1,5 +1,5 @@
-hash: 87509a511a3717c000d9d742e3f15e024eaf7f225f162ff407fbf4715e9c1819
-updated: 2016-03-29T06:21:49.209392428-10:00
+hash: 21ac3c23d2a377e511969eb8ea2e33ed1fc7b63ecb31a227de3599208a230941
+updated: 2016-05-16T18:36:46.520675938-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 4f9a300f2af32035b3ae8bd0ce9b0fe8412df743
@@ -64,15 +64,13 @@ imports:
   version: e22aedd37671fb115be6c0c25129c405cb575cfd
   subpackages:
   - assert
-- name: github.com/vaughan0/go-ini
-  version: a98ad7ee00ec53921f08832bc06ecf7fd600e6a1
 - name: golang.org/x/net
-  version: 31df19d69da8728e9220def59b80ee577c3e48bf
+  version: 195180cfebf7362bd243a52477697895128c8777
   subpackages:
   - context
   - context/ctxhttp
 - name: gopkg.in/logfmt.v0
-  version: 08ab82a63ef462ac643ec79e659f023891f588f5
+  version: a0ff333161fe5c2daed0ba52d1792bd3d2531b94
 - name: gopkg.in/stack.v1
-  version: 0585967eab0016c8e4e2d55ac20585b469574cec
+  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 devImports: []

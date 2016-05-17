@@ -8,9 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	kitlog "github.com/go-kit/kit/log"
 	levlog "github.com/go-kit/kit/log/levels"
-	"github.com/urlgrey/streammarker-writer/config"
-	"github.com/urlgrey/streammarker-writer/endpoint"
-	"github.com/urlgrey/streammarker-writer/msg"
+	"github.com/skidder/streammarker-writer/config"
+	"github.com/skidder/streammarker-writer/endpoint"
+	"github.com/skidder/streammarker-writer/msg"
 
 	"golang.org/x/net/context"
 )

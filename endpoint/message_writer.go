@@ -2,9 +2,9 @@ package endpoint
 
 import (
 	"errors"
-	"github.com/urlgrey/streammarker-writer/config"
-	"github.com/urlgrey/streammarker-writer/db"
-	"github.com/urlgrey/streammarker-writer/msg"
+	"github.com/skidder/streammarker-writer/config"
+	"github.com/skidder/streammarker-writer/db"
+	"github.com/skidder/streammarker-writer/msg"
 
 	"golang.org/x/net/context"
 )

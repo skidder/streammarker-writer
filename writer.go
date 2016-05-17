@@ -10,8 +10,8 @@ import (
 	"time"
 
 	kitlog "github.com/go-kit/kit/log"
-	"github.com/urlgrey/streammarker-writer/binding"
-	"github.com/urlgrey/streammarker-writer/config"
+	"github.com/skidder/streammarker-writer/binding"
+	"github.com/skidder/streammarker-writer/config"
 	"golang.org/x/net/context"
 )
 

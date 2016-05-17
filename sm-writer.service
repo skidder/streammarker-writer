@@ -5,8 +5,8 @@ Requires=docker.service
 
 [Service]
 TimeoutStartSec=0
-ExecStartPre=/usr/bin/docker pull urlgrey/streammarker-writer
-ExecStart=/usr/bin/docker run --rm --name sm-writer -e AWS_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=xxxx -e AWS_SECRET_ACCESS_KEY=xxxx urlgrey/streammarker-writer
+ExecStartPre=/usr/bin/docker pull skidder/streammarker-writer
+ExecStart=/usr/bin/docker run --rm --name sm-writer -e AWS_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=xxxx -e AWS_SECRET_ACCESS_KEY=xxxx skidder/streammarker-writer
 ExecStop=/usr/bin/docker stop sm-writer
 
 [X-Fleet]

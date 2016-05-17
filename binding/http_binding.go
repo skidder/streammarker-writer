@@ -8,8 +8,8 @@ import (
 	levlog "github.com/go-kit/kit/log/levels"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
-	"github.com/urlgrey/streammarker-writer/config"
-	"github.com/urlgrey/streammarker-writer/endpoint"
+	"github.com/skidder/streammarker-writer/config"
+	"github.com/skidder/streammarker-writer/endpoint"
 
 	"golang.org/x/net/context"
 )

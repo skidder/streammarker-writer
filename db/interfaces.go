@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/urlgrey/streammarker-writer/msg"
+	"github.com/skidder/streammarker-writer/msg"
 )
 
 // MeasurementWriter is capable of writing sensor readings to storage
