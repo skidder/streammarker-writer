@@ -27,5 +27,6 @@ deploy:
         password: $DOCKERHUB_PASSWORD
         tag: latest
         ports: "3100"
+        cmd: ./streammarker-writer
         repository: skidder/streammarker-writer
         registry: https://registry.hub.docker.com
