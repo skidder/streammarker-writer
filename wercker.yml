@@ -20,6 +20,11 @@ build:
         name: test
         code: |
           make test
+
+    # Copy binary to a location that gets passed along to the deploy pipeline
+    - script:
+        name: copy binary
+        code: cp app "$WERCKER_OUTPUT_DIR"
 deploy:
   steps:
     - internal/docker-scratch-push:
