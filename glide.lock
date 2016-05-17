@@ -1,5 +1,5 @@
-hash: 21ac3c23d2a377e511969eb8ea2e33ed1fc7b63ecb31a227de3599208a230941
-updated: 2016-05-16T18:36:46.520675938-07:00
+hash: 13f65a253f55471213011e2b607e33e7bc51636962b3e600fcc5cead28b3a73c
+updated: 2016-05-16T18:41:52.405463999-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 4f9a300f2af32035b3ae8bd0ce9b0fe8412df743
@@ -45,6 +45,10 @@ imports:
   - log/levels
   - transport/http
   - endpoint
+- name: github.com/go-logfmt/logfmt
+  version: 538518f3a61c040f3d15f05decfffef6bd0302bc
+- name: github.com/go-stack/stack
+  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 - name: github.com/gorilla/context
   version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
 - name: github.com/gorilla/mux

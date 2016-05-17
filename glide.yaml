@@ -32,3 +32,7 @@ import:
   version: 195180cfebf7362bd243a52477697895128c8777
   subpackages:
   - context
+- package: github.com/go-logfmt/logfmt
+  version: 538518f3a61c040f3d15f05decfffef6bd0302bc
+- package: github.com/go-stack/stack
+  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
