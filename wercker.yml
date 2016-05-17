@@ -14,7 +14,7 @@ build:
     - script:
         name: build
         code: |
-          make build
+          make static-build
 
     - script:
         name: test
