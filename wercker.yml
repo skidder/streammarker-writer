@@ -1,0 +1,31 @@
+box: golang
+build:
+  # The steps that will be executed on build
+  steps:
+    - skidder/glide-install@1.0.2
+  
+    - script:
+        name: Copy source to GOPATH
+        code: |
+          rm -rf vendor
+          mkdir -p ${GOPATH}/src/github.com/skidder/streammarker-writer
+          cp -R . ${GOPATH}/src/github.com/skidder/streammarker-writer
+
+    - script:
+        name: build
+        code: |
+          make build
+
+    - script:
+        name: test
+        code: |
+          make test
+deploy:
+  steps:
+    - internal/docker-scratch-push:
+        username: $DOCKERHUB_USERNAME
+        password: $DOCKERHUB_PASSWORD
+        tag: latest
+        ports: "3100"
+        repository: skidder/streammarker-writer
+        registry: https://registry.hub.docker.com
