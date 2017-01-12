@@ -2,14 +2,15 @@ box: golang
 build:
   # The steps that will be executed on build
   steps:
-    - skidder/glide-install@1.0.2
+    - glide-install@2.1.1
   
     - script:
         name: Copy source to GOPATH
         code: |
+          cp -R vendor/* /usr/local/go/src
           rm -rf vendor
-          mkdir -p ${GOPATH}/src/github.com/skidder/streammarker-writer
-          cp -R . ${GOPATH}/src/github.com/skidder/streammarker-writer
+          mkdir -p /usr/local/go/src/github.com/skidder/streammarker-writer
+          cp -R . /usr/local/go/src/github.com/skidder/streammarker-writer
 
     - script:
         name: build
